@@ -23,6 +23,22 @@
 
 `_original-lcs.md` / 规则 `00-original` 是插件原版注入正文的副本，用来切回去。
 
+## 0. 先看有没有 PowerShell 7
+
+跑任何 `.ps1` 或 bat 之前先查 `pwsh`：
+
+```powershell
+where.exe pwsh
+```
+
+没有这个命令（或 `Get-Command pwsh` 为空）时，先告诉用户，再往下走：
+
+- Windows 自带的是 PowerShell 5.1（`powershell`）。脚本可以跑，控制台里的中文仍可能乱码。
+- 把安装命令交给用户决定，不要擅自安装：`winget install Microsoft.PowerShell`
+- 用户装好并重新打开终端之后，再继续。用户明确说先用 5.1，也可以继续。两个 bat 退回 5.1 时会自己再打一遍同样的提醒。
+
+`.ps1` 文件头有 UTF-8 BOM，5.1 才会按 UTF-8 解析里面的中文。`chcp 65001` 只改控制台显示，不改 5.1 读脚本的方式。打进插件的 js 和 `current.json` 仍然是无 BOM 的 UTF-8。
+
 ## 先问清的三件事
 
 记下来，后面每一步都用这些答案。
@@ -69,7 +85,7 @@ node (Join-Path $env:DSH_HOME "profiles\<profile>\node_modules\dsh-purge-communi
 
 ## C. 打补丁、放入示例配置、重启、看面板
 
-在 `$Addon`（或用户指定的、旁边带有 `patch/` 的目录）执行。有 `pwsh` 就用 PowerShell 7；没有就用 Windows PowerShell 5.1（`powershell`）。两个 bat 会自己选。脚本写入补丁和 `current.json` 时用无 BOM 的 UTF-8，5.1 和 7 都不会在文件头加 BOM。
+在 `$Addon`（或用户指定的、旁边带有 `patch/` 的目录）执行。第 0 步确认过 `pwsh`。没有 `pwsh` 时用 Windows PowerShell 5.1（`powershell`）。两个 bat 会自己选，并在退回 5.1 之前打印安装 PowerShell 7 的提醒。脚本写入补丁和 `current.json` 时用无 BOM 的 UTF-8。
 
 ```powershell
 $env:DSH_HOME = '<$DshHome>'
@@ -121,7 +137,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "$Addon\switch.ps1" -List
 pwsh -NoProfile -ExecutionPolicy Bypass -File "$Addon\switch.ps1" <档案键>
 ```
 
-也可以双击 `$Addon\切换.bat`（需要环境变量 `DSH_HOME`）。`查看档案.bat` 只列档案。两个 bat 在没有 `pwsh` 时改用 `powershell`。位置参数是档案键：`switch.ps1 grok`。参数名不是 `$Profile`。
+也可以双击 `$Addon\切换.bat`（需要环境变量 `DSH_HOME`）。`查看档案.bat` 只列档案。两个 bat 有 `pwsh` 就用它；没有就先打印「建议安装 PowerShell 7，否则中文可能乱码；安装命令：winget install Microsoft.PowerShell」，再用 `powershell` 继续。位置参数是档案键：`switch.ps1 grok`。参数名不是 `$Profile`。
 
 | 动作 | 结果 |
 | --- | --- |
@@ -129,7 +145,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "$Addon\switch.ps1" <档案键>
 | 备份 | 只有真正切换才建 `$Addon/backup/`，文件名 `prompt-inject-<时间>-<档案键>-prev.md`。`-List` 不建这个目录 |
 | 状态 | `$Addon/current.json`（无 BOM 的 UTF-8，本机文件，不要提交） |
 | 查看 | `-Current` 在 `prompt-inject.md` 还不存在时只打印路径，退出码仍是 0 |
-| 还原 | `.\switch.ps1 -Restore` 用 `backup/` 里最新一份盖回 `prompt-inject.md` |
+| 还原 | `.\switch.ps1 -Restore` 用 `backup/` 里最新一份盖回 `prompt-inject.md`。没有备份时只提示，不报错。目标文件还不存在时，用这份备份把它写出来 |
 
 档案键在 `profiles.json`。`-List` 或 `查看档案.bat` 能看到。
 

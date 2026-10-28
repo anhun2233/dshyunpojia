@@ -22,7 +22,7 @@
 
 ## 手动切换
 
-双击前，先在用户环境里设好 `DSH_HOME`。两个 bat 有 `pwsh` 就用它，没有就退回 Windows PowerShell（`powershell`）。
+双击前，先在用户环境里设好 `DSH_HOME`。两个 bat 有 `pwsh` 就用它；没有就先提示安装 PowerShell 7（`winget install Microsoft.PowerShell`），再退回 Windows PowerShell 5.1。`.ps1` 带 UTF-8 BOM，5.1 才能正确读里面的中文。写进插件的 js 和 `current.json` 仍然无 BOM。
 
 ```text
 切换.bat            交互菜单，输入序号切换
@@ -34,7 +34,7 @@ $env:DSH_HOME = '你的 DSH 数据目录'
 .\switch.ps1 -List
 .\switch.ps1 grok
 .\switch.ps1 -Current
-.\switch.ps1 -Restore
+.\switch.ps1 -Restore      # 没有备份时只提示，不报错
 .\switch.ps1 -DshHome $env:DSH_HOME grok
 ```
 

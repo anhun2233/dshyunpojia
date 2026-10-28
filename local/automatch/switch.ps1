@@ -1,4 +1,4 @@
-# 破甲提示词一键切换器
+﻿# 破甲提示词一键切换器
 # 档案目录 = 本脚本所在目录（$PSScriptRoot）。
 # DSH 数据目录 = 环境变量 DSH_HOME，或 -DshHome。
 # -List 只读本地档案，不需要 DSH_HOME，也不建 backup\。
@@ -117,13 +117,37 @@ function Switch-Profile([string]$key) {
 }
 
 function Restore-Last {
-    $bak = Get-ChildItem $BackupDir -Filter 'prompt-inject-*.md' -ErrorAction SilentlyContinue |
-           Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    if (-not $bak) { throw "没有备份可还原" }
-    Copy-Item $bak.FullName $Target -Force
+    $bak = $null
+    if (Test-Path -LiteralPath $BackupDir) {
+        $bak = Get-ChildItem -LiteralPath $BackupDir -Filter 'prompt-inject-*.md' -ErrorAction SilentlyContinue |
+               Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    }
+    if (-not $bak) {
+        Write-Host ""
+        Write-Host "  没有备份可还原。先成功切换过一次，backup\ 里才会有 prompt-inject-*.md。" -ForegroundColor Yellow
+        if ([string]::IsNullOrWhiteSpace($Target) -or -not (Test-Path -LiteralPath $Target)) {
+            Write-Host "  prompt-inject.md 现在也不存在：$Target" -ForegroundColor Yellow
+        }
+        Write-Host ""
+        return
+    }
+    $parent = Split-Path -Parent $Target
+    if ([string]::IsNullOrWhiteSpace($parent) -or -not (Test-Path -LiteralPath $parent)) {
+        Write-Host ""
+        Write-Host "  写不回提示词文件，目录不存在：$parent" -ForegroundColor Yellow
+        Write-Host ""
+        return
+    }
+    $existed = Test-Path -LiteralPath $Target
+    Copy-Item -LiteralPath $bak.FullName -Destination $Target -Force
+    $bytes = (Get-Item -LiteralPath $Target).Length
     Write-Host ""
-    Write-Host "  已还原: $($bak.Name)" -ForegroundColor Green
-    Write-Host "  目标文件现在: $((Get-Item $Target).Length) 字节"
+    if ($existed) {
+        Write-Host "  已还原: $($bak.Name)" -ForegroundColor Green
+    } else {
+        Write-Host "  prompt-inject.md 原先不存在，已按备份写出: $($bak.Name)" -ForegroundColor Green
+    }
+    Write-Host "  目标文件现在: $Target  ($bytes 字节)"
     Write-Host "  ★ 重启 DSH 生效" -ForegroundColor Yellow
     Write-Host ""
 }

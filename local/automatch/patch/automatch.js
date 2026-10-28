@@ -2,8 +2,11 @@
 //
 // 决策顺序（优先级从高到低）：
 //   1. routes  —— 精确指定：模型代号（清洗后）完全相等 → 用指定规则
-//   2. map     —— 前缀匹配：长前缀优先。默认只认「以该键开头」。
-//                 automatch.json 里 "includes": true 时，开头都没命中才再按「包含该键」匹配。
+//   2. map     —— 只看前缀，忽略中转站加在后面的后缀（-ts、-xxx、flash 等）。
+//                 比较前会把模型和键里的 - _ . 去掉，再按去掉之后的长度从长到短做 startsWith。
+//                 这样「GLM 5.2 flash」对上 glm-5.2，而不是更短的 glm。
+//                 默认不做「包含」匹配。automatch.json 里 "includes": true 时，
+//                 开头都没命中才再按包含匹配。用户电脑上的旧脚本默认带 includes 兜底，和这里不同。
 //   3. default —— 兜底规则 id（可为空）
 //   4. 以上都没命中 → 返回 null，由调用方回落到 prompt-inject.md
 //
@@ -108,14 +111,23 @@ export function pickModel(context) {
 }
 
 // ---- 代号清洗 ----
+// 只看前缀、忽略后缀。这里先得到可比的代号，还不去掉 - _ . 。
+// routes 的精确匹配用这一步的结果，所以 exact 键必须和清洗后的整串一致。
 
 export function normalizeModel(model) {
   return String(model || "")
     .toLowerCase()
-    .replace(/^[a-z0-9_.-]+\//, "") // 去掉 provider/ 前缀
-    .replace(/\[[^\]]*\]/g, "") // 去掉 [1m] 之类
-    .replace(/\s+/g, "")
+    .replace(/^[a-z0-9_.-]+\//, "") // 去掉开头的 provider/ ，中转站名字不参与匹配
+    .replace(/\[[^\]]*\]/g, "") // 去掉 [1m] 这类标签
+    .replace(/\s+/g, "") // 去掉所有空白：「GLM 5.3 flash」→ glm5.3flash
     .trim();
+}
+
+// 前缀比较专用。清洗后的代号和 map 键都再去掉 - _ . 。
+// 只去空白时，「GLM 5.2 flash」变成 glm5.2flash，不以键 glm-5.2 开头，
+// 会误命中更短的 glm。去掉分隔符后是 glm52flash，以 glm52 开头，后缀 flash 留在后面。
+export function foldPrefix(s) {
+  return String(s || "").replace(/[-_.]/g, "");
 }
 
 // ---- 三层决策 ----
@@ -130,17 +142,24 @@ export function decide(model, cfg) {
     return { ruleId: cfg.routes[m], how: "route" };
   }
 
-  // 2) 前缀匹配（长前缀优先）。先全部试开头，避免更长的「包含」压过真正的前缀。
+  // 2) 只看前缀。键同样小写、去空白，再和模型一起去掉 - _ . 。
+  //    按去掉分隔符之后的长度从长到短比，命中即停。后面的 -ts / -xxx / flash 不影响。
+  //    先做完所有 startsWith，可选的 includes 不能抢走更长的真正前缀。
+  const folded = foldPrefix(m);
   const keys = Object.keys(cfg.map || {})
-    .map((k) => [String(k).toLowerCase().replace(/\s+/g, ""), cfg.map[k]])
-    .filter(([k, v]) => k && typeof v === "string" && v)
-    .sort((a, b) => b[0].length - a[0].length);
-  for (const [prefix, ruleId] of keys) {
-    if (m.startsWith(prefix)) return { ruleId, how: "prefix" };
+    .map((k) => {
+      const raw = String(k).toLowerCase().replace(/\s+/g, "");
+      return [raw, foldPrefix(raw), cfg.map[k]];
+    })
+    .filter(([, foldedKey, v]) => foldedKey && typeof v === "string" && v)
+    .sort((a, b) => b[1].length - a[1].length || b[0].length - a[0].length);
+  for (const [, prefix, ruleId] of keys) {
+    if (folded.startsWith(prefix)) return { ruleId, how: "prefix" };
   }
+  // 默认关。打开后才在「开头都对不上」时做包含匹配，比较用的也是去掉分隔符的串。
   if (cfg.includes === true) {
-    for (const [prefix, ruleId] of keys) {
-      if (m.includes(prefix)) return { ruleId, how: "contains" };
+    for (const [, prefix, ruleId] of keys) {
+      if (folded.includes(prefix)) return { ruleId, how: "contains" };
     }
   }
 

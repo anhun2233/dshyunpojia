@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "includes": false,
-  "_说明": "map 默认只认「代号以键开头」（长键优先）。要把「包含该键」也算命中，把 includes 改成 true。",
+  "_说明": "map 只看前缀。比较时模型和键都会去掉空白以及 - _ . ，后缀如 -ts、-xxx、flash 不影响。长键优先。includes 为 true 时，开头都对不上才做包含匹配；默认 false。",
   "routes": {},
   "default": "",
   "map": {

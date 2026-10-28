@@ -4,6 +4,8 @@
 
 插件升级、应用宿主补丁、重启，是三件不同的事。不要替用户杀进程，不要调用重启接口，不要改提示词以外的用户配置来“消掉”告警。
 
+附加功能就三件事：多套提示词可手动换、按当前模型前缀自动换提示词（后缀如 `-ts`、`flash` 不管）、插件升级后重跑恢复脚本。自动匹配怎么比，见 [README 的前缀规则](README.md#prefix-rules)。
+
 ## 这个仓库是什么
 
 [anhun2233/dsh-purge](https://github.com/anhun2233/dsh-purge) 是社区插件 [dsh-purge-community](https://github.com/kingcharleslzy-ai/dsh-purge) 的 fork。插件负责 DSH（DeepSeek Harness）里的宿主补丁、自检、提示词和规则面板。
@@ -165,7 +167,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "$Addon\switch.ps1" <档案键>
 然后按这个顺序（`decide`）：
 
 1. **routes**：清洗后的整串等于键。面板「精确指定」写的就是这里。
-2. **map**：键越长越先比。清洗后的代号**以该键开头**才命中。`glm-5.3` 会压过 `glm`。过短的键仍可能吃掉一串更长的开头，加键之前先想清楚。只有 `automatch.json` 里 `"includes": true` 时，开头全部落空之后才再做一次「包含该键」。包含匹配不会抢在真正的前缀之前。示例配置里的 `includes` 是 `false`。
+2. **map**：只看前缀。比较前把模型和键里的 `-` `_` `.` 去掉，再按去掉之后的长度从长到短做 `startsWith`。`GLM 5.2 flash` 命中 `glm-5.2`，不是更短的 `glm`。后缀留在后面。只有 `"includes": true` 时，开头全部落空才做包含匹配。示例里是 `false`。用户电脑上的旧引擎默认还会用 `includes` 兜底，和这份代码不同。例子表见 [README](README.md#prefix-rules)。
 3. **default**：非空才用。
 4. 否则返回空，调用方使用 `prompt-inject.md`。
 

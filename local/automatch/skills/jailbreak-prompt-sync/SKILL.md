@@ -103,7 +103,7 @@ $utf8 = New-Object System.Text.UTF8Encoding $false
 - 长前缀优先（`deepseek-v4.1` 压过 `deepseek`）
 - 弱档模型指向 `unified`
 - 前缀小写、无空格；匹配时自动去 provider 前缀、`[...]` 和空格
-- 默认只认「以该前缀开头」。`automatch.json` 里 `"includes": true` 时，开头都没命中才再按「包含该键」匹配
+- 默认只认前缀。比较前去掉 `-` `_` `.`，长键优先，后缀不影响。`"includes": true` 时开头都没命中才做包含匹配。用户电脑旧引擎默认还有 includes 兜底，仓库默认没有
 
 ### 5. 校验
 

@@ -90,6 +90,27 @@ assertDecide(
   "prefix",
 );
 
+const sampleCfg = { routes: {}, default: "", includes: false, map: DEFAULTS.map };
+const samples = [
+  ["GLM 5.3 flash", "glm53f", "prefix"],
+  ["GLM 5.2 flash", "glm52", "prefix"],
+  ["glm-5.3-ts", "glm53f", "prefix"],
+  ["Kimi K3 xxx", "kimi3", "prefix"],
+  ["openrouter/deepseek-v4.1-xx", "dsv4", "prefix"],
+  ["claude-sonnet-4.5[1m]", "unified", "prefix"],
+  ["grok-4.7-fast", "grok", "prefix"],
+  ["not-a-known-model", "", ""],
+];
+for (const [model, ruleId, how] of samples) {
+  assertDecide(model, decide(model, sampleCfg), ruleId, how);
+}
+assertDecide(
+  "routes 仍按清洗后的整串精确匹配",
+  decide("GLM 5.2 flash", { routes: { "glm5.2flash": "ds41" }, default: "", map: DEFAULTS.map }),
+  "ds41",
+  "route",
+);
+
 const home = fs.mkdtempSync(path.join(os.tmpdir(), "automatch-ui-"));
 const cfgFile = path.join(home, "dsh-purge", "automatch.json");
 fs.mkdirSync(path.dirname(cfgFile), { recursive: true });

@@ -1,0 +1,29 @@
+{
+  "enabled": true,
+  "routes": {},
+  "default": "",
+  "map": {
+    "deepseek-v4.1": "dsv4",
+    "deepseek-4-1": "ds41",
+    "deepseek-v4": "dsv4",
+    "deepseek-v3": "dsv3",
+    "deepseek": "dsv4",
+    "grok-4.7": "grok",
+    "grok-4": "grok",
+    "grok": "grok",
+    "glm-5.3": "glm53f",
+    "glm-5.2": "glm52",
+    "glm": "glm53f",
+    "zhipu": "glm53f",
+    "kimi-k3": "kimi3",
+    "kimi": "kimi3",
+    "qwen": "qwen",
+    "gemini": "gemini",
+    "claude-opus": "unified",
+    "claude-sonnet": "unified",
+    "claude": "unified",
+    "opus": "unified",
+    "sonnet": "unified",
+    "mistral": "unified"
+  }
+}

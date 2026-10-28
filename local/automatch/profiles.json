@@ -1,0 +1,152 @@
+{
+  "lcs": {
+    "name": "原版 LCS（当前在用）",
+    "file": "_original-lcs.md",
+    "note": "插件默认那 226 行"
+  },
+  "grok": {
+    "name": "Grok 专用 CFG",
+    "file": "grok-config.txt",
+    "note": "结构化<CFG>，优先级声明 + 推理层拦截"
+  },
+  "grok47": {
+    "name": "Grok 4.7 工作区",
+    "file": "grok-4.7.md",
+    "note": "把安全工具定义为正常构建类别"
+  },
+  "grokbuild": {
+    "name": "Grok Build 代理",
+    "file": "grok-build.md",
+    "note": "构建工作区规格"
+  },
+  "unified": {
+    "name": "通用六边界",
+    "file": "unified.md",
+    "note": "论证最完整，抗追问最强"
+  },
+  "ds41": {
+    "name": "DeepSeek 4.1",
+    "file": "deepseek-4-1.md",
+    "note": "代理操作规范"
+  },
+  "dsv4": {
+    "name": "DeepSeek V4",
+    "file": "deepseek-v4.md",
+    "note": "系统提示"
+  },
+  "dsv3": {
+    "name": "DeepSeek V3",
+    "file": "deepseek-v3.md",
+    "note": "系统提示"
+  },
+  "opus2": {
+    "name": "Claude Opus v2",
+    "file": "opus-v2.md",
+    "note": "对话铺垫人设"
+  },
+  "opus1": {
+    "name": "Claude Opus v1",
+    "file": "opus-v1.md",
+    "note": "对话铺垫人设"
+  },
+  "sonnet2": {
+    "name": "Claude Sonnet v2",
+    "file": "sonnet-v2.md",
+    "note": "编剧室框架"
+  },
+  "sonnet1": {
+    "name": "Claude Sonnet v1",
+    "file": "sonnet-v1.md",
+    "note": "编剧室框架"
+  },
+  "gemini": {
+    "name": "Gemini 4 Argon",
+    "file": "gemini-4-argon.md",
+    "note": "操作策略"
+  },
+  "mistral": {
+    "name": "Mistral Large 4",
+    "file": "mistral-large-4.md",
+    "note": "代理系统提示"
+  },
+  "qwen": {
+    "name": "Qwen 3.7",
+    "file": "qwen-3.7.md",
+    "note": "系统提示"
+  },
+  "kimi3": {
+    "name": "Kimi K3",
+    "file": "kimi-k3-agents.md",
+    "note": "工作区规格"
+  },
+  "kimi2": {
+    "name": "Kimi K2",
+    "file": "kimi-k2.md",
+    "note": "系统提示"
+  },
+  "glm52": {
+    "name": "GLM-5.2",
+    "file": "glm-5.2.md",
+    "note": "系统提示"
+  },
+  "glmz53": {
+    "name": "GLM ZCode 5.3",
+    "file": "glm-zcode-5.3.md",
+    "note": "系统提示"
+  },
+  "glm53f": {
+    "name": "GLM-5.3 Flash",
+    "file": "glm-5-3-flash.md",
+    "note": "操作规范"
+  },
+  "glm53oc": {
+    "name": "GLM-5.3 (OpenCode)",
+    "file": "glm5-3-opencode.md",
+    "note": "操作规范"
+  },
+  "pickle": {
+    "name": "Big Pickle",
+    "file": "bigpickle-opencode.md",
+    "note": "VANTA 人设锁 + 操作底线"
+  },
+  "bunny": {
+    "name": "Space Bunny",
+    "file": "spacebunny-agents.md",
+    "note": "助手操作规范"
+  },
+  "longcat": {
+    "name": "LongCat 2.5",
+    "file": "longcat-agents.md",
+    "note": "助手操作规范"
+  },
+  "mimo": {
+    "name": "MiMo V2.6",
+    "file": "mimo-2.6-agents.md",
+    "note": "助手操作规范"
+  },
+  "muse": {
+    "name": "Muse.ai",
+    "file": "muse-ai-agents.md",
+    "note": "助手操作规范"
+  },
+  "musew": {
+    "name": "Muse Wonder",
+    "file": "muse-wonder.md",
+    "note": "未归类"
+  },
+  "beam": {
+    "name": "Beam",
+    "file": "beam.md",
+    "note": "未归类"
+  },
+  "gemma": {
+    "name": "Gemma 4 (Ollama)",
+    "file": "gemma4.md",
+    "note": "Modelfile 格式"
+  },
+  "gptoss": {
+    "name": "GPT-OSS 20B (Ollama)",
+    "file": "gpt-oss-20b.md",
+    "note": "Modelfile 格式"
+  }
+}

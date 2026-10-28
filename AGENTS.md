@@ -11,6 +11,7 @@
 - 这个插件（`dsh-purge-community`）把 DSH 里**拦你的东西**拆掉：审批弹窗、沙箱拒绝、fs 围栏、工具结果修剪、计划模式硬拦、`ask_user_question` 等待、以及模型自己的拒绝倾向。
 - 你不需要"绕过"它——**它就是替你拆闸的**。看到"我不能/建议你先确认"这类输出，多半不是插件失效，而是模型层的问题，按 §5 排查。
 - 你的操作入口只有两个：**面板（左侧栏 Purge）** 和 **CLI（`purge-community`）**。别手改 `~/Library/.../Resources/app` 下的宿主文件，改了会被下一次「应用」覆盖。
+- 本 fork 另有一份插件外的附加组件（多套提示词、手动切换、按当前模型自动匹配），在 `local/automatch/`。不改插件源码。步骤见 [local/automatch/INSTALL.md](local/automatch/INSTALL.md)，摘要见 §31。
 
 ## 1. 心智模型：五层，各管一件事
 
@@ -399,3 +400,15 @@ Windows Electron 的递归删除可能进入 Junction。清理使用 `removeTree
 维护锁不按超龄强删。新版通过非空互斥目录协调回收，并保留旧版识别的 maintenance.lock；确认进程已结束或 PID 被复用后才回收。活着的旧版长任务、跨机或不可读/无效锁继续阻止写入并给出诊断。丢锁时停止安装/回滚后续提交及 checkpoint 自动恢复，保留恢复目录，不能手工删除锁强行继续。
 
 #89 的 Windows 助手退出故障已在受控 Job Object 环境重建，尚未确认报告者现场的启动/Job 机制，本版不宣称已修复。操作边界及脚本见 [维护记录](docs/maintenance-issues-86-89.md)。不自动 apply/restart，不修改提示词、配置或代理。
+
+## 31. 本 fork 的附加组件（不在上游插件里）
+
+`local/automatch/` 是用户放在插件外面的提示词附加组件：手动切换多套正文，并按当前模型代号自动选规则。插件源码保持上游；补丁由 `恢复自动匹配.ps1` 打进**已安装**的 `profiles/<profile>/node_modules/dsh-purge-community`。不要改本仓库的 `lib/` 或 `client.js` 来实现它。
+
+逐步操作（先问目录和 profile，再执行）见 [local/automatch/INSTALL.md](local/automatch/INSTALL.md)。这里只留边界：
+
+- 手动切换改的是 `<DSH_HOME>/prompt-inject.md`。切换器提示要重启后再确认。`current.json` 和 `backup/` 是本机状态，不要提交。
+- 自动匹配命中时整段替换注入，不读 `prompt-inject.md`。两道开关：`tuning.json` 的 `autoMatch`，以及 `dsh-purge/automatch.json` 的 `enabled`（面板上的「自动匹配」按钮）。
+- 插件升级会清掉 `node_modules` 里的补丁。让用户再跑一次 `local/automatch/恢复自动匹配.ps1`。规则库和 `automatch.json` 不在插件包里，升级不会清掉。
+- 锚点对不上时脚本打印 `[!]` 并停止改那一处。不要整文件覆盖，不要为了消黄字改权限或删规则。
+- `prompts/` 来自 https://github.com/Alejandros17487/ai-jailbreaks 。该仓库没有许可证文件，README 写明仅供研究与教育使用。不要声称这些正文有许可证。`_original-lcs.md` 是插件原版注入的本地副本。

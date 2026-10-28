@@ -220,6 +220,14 @@ npm run smoke            # 发行包冒烟
 
 **关键词**：破甲 · 无限制模式 · unrestricted · prompt injection · jailbreak · DSH 插件 · 状态自检 · 备份回滚
 
+## 本 fork 附加：按模型切换提示词
+
+上游插件只注入一份 `<DSH_HOME>/prompt-inject.md`。本仓库在 [`local/automatch/`](local/automatch/) 放了一份插件之外的附加组件：多套按模型准备的提示词、手动切换，以及按当前模型代号自动选规则。它不改插件源码；自动匹配打在已经安装的那份 `node_modules` 上，插件升级会清掉，需要再跑恢复脚本。
+
+提示词正文来自 [Alejandros17487/ai-jailbreaks](https://github.com/Alejandros17487/ai-jailbreaks)。该仓库**没有许可证文件**，README 写明仅供研究与教育使用。这里只保留来源说明，不对这些正文主张许可证。
+
+安装、切换、自动匹配和升级后重打补丁，见 [local/automatch/INSTALL.md](local/automatch/INSTALL.md)。
+
 ## 贡献者
 
 感谢原作者、代码贡献者，以及提供问题复现、分析与验证的朋友。头像链接直达 GitHub 主页；具体贡献见 [贡献记录](CONTRIBUTORS.md)，第三方来源见 [NOTICE.md](NOTICE.md)。

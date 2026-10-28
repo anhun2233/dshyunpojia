@@ -151,7 +151,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "$Addon\switch.ps1" <档案键>
 
 档案键在 `profiles.json`。`-List` 或 `查看档案.bat` 能看到。
 
-切换器结束时会写：**需要重启 DeepSeek Harness 才生效**。按这个提示请用户重启后再看，不要假设热加载已经吃到新文件。
+切换器写完 `prompt-inject.md` 之后，下一轮组装就会按文件修改时间重读，不用为了这次切换重启 DSH。缓存只有 200ms，而且时间变了就不会用缓存。自动路由开着并且命中时，注入用的是规则正文，不是这份文件。要看手动这份，先关掉自动路由，或让当前模型落空。若提示词框已经钉过旧正文，见下面「什么时候要重启」。
 
 自动路由和手动规则的关系（和代码一致）：
 
@@ -160,6 +160,8 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "$Addon\switch.ps1" <档案键>
 - **开但没命中**：示例里 `default` 为空，退回 `prompt-inject.md`。若你把 `default` 写成了规则 id，没命中时用那条，不退回手动文件。
 
 命令：`.\switch.ps1 -AutoRoute on|off|status`。`切换.bat` 菜单里按 `a` 同样拨这个开关。拨开关不用重启；第一次打补丁之后要重启一次，面板上才会出现「自动路由」。补丁还要求 `tuning.json` 的 `autoMatch` 不是 false（恢复脚本写入的默认是 true）。详见 [README](README.md#auto-route-switch)。
+
+手动换 `prompt-inject.md` 也不用为了缓存重启。下一轮 `system-prompt/assemble` 会看修改时间，200ms 缓存只在时间没变时生效。例外：这个进程里提示词框已经钉过旧正文（`committedOverride`）时，外部改写会被压住，要退出重开。面板「启用」写 `AGENTS.md` / `CLAUDE.md`，插件提示是新会话生效，不是重启。完整说明见 [README](README.md#什么时候要重启)。
 
 ## 自动匹配怎么选
 

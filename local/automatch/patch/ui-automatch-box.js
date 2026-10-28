@@ -86,8 +86,8 @@ function AutoMatchBox() {
       msg ? h("span", { className: "dshpp-block-hint", style: { marginLeft: 10 } }, msg) : null
     ),
     h("p", { className: "dshpp-block-hint" }, on
-      ? "开：命中就整段换成对应规则，不和手动那份拼在一起。没命中则退回你点「启用」或 switch.ps1 写入的 prompt-inject.md。下一轮对话生效，不用重启。"
-      : "关：不自动匹配。只用你点「启用」的规则，或 switch.ps1 写入的 prompt-inject.md。自动规则不会覆盖，也不会拼上去。下一轮对话生效，不用重启。"),
+      ? "开：命中就整段换成对应规则，不和 prompt-inject.md 拼在一起。没命中则退回 prompt-inject.md。下一轮组装生效。外部改这份文件不用为了缓存重启；提示词框若已钉过旧稿，要退出重开。"
+      : "关：不自动匹配，不覆盖、不叠加。系统提示用 prompt-inject.md。下一轮组装按文件时间重读。提示词框若已钉过旧稿，外部改写要退出重开。面板「启用」写的是 AGENTS.md 或 CLAUDE.md，新会话生效，不用重启进程。"),
     h("p", { className: "dshpp-block-hint" }, autoRouteLine(cfg, rules)),
     h("p", { className: "dshpp-block-hint" }, "精确指定（优先于前缀）：某个模型代号固定用哪套规则"),
     rows.length ? rows : h("p", { className: "dshpp-block-hint" }, "（还没有精确指定）"),

@@ -187,6 +187,19 @@ if ($c -notmatch 'function AutoMatchBox') {
     $c = $c.Replace($a, $a + "`n" + $box)
     Say "  [+] client.js 加 AutoMatchBox 组件" 'Green'; $changed++; $cdirty = $true
   } else { Say "  [!] client.js 组件锚点没找到（ruleLabel）" 'Yellow' }
+} elseif (Test-Path $boxFile) {
+  $box = (Get-Content $boxFile -Raw -Encoding UTF8).TrimEnd()
+  $start = $c.IndexOf("function autoRouteLine(")
+  $boxStart = $c.IndexOf("function AutoMatchBox()")
+  if ($start -lt 0 -or ($boxStart -ge 0 -and $boxStart -lt $start)) { $start = $boxStart }
+  $end = $c.IndexOf("function RulesSection()")
+  if ($start -ge 0 -and $end -gt $start) {
+    $current = $c.Substring($start, $end - $start).TrimEnd()
+    if ($current -ne $box) {
+      $c = $c.Substring(0, $start) + $box + "`n" + $c.Substring($end)
+      Say "  [~] client.js 更新 AutoMatchBox" 'Yellow'; $changed++; $cdirty = $true
+    } else { Say "  [=] client.js AutoMatchBox 一致" }
+  }
 }
 if ($c -notmatch 'h\(AutoMatchBox') {
   $a = '      { className: "dshpp-block" },' + "`n" + '      h(' + "`n" + '        "div",' + "`n" + '        { className: "dshpp-split" },'

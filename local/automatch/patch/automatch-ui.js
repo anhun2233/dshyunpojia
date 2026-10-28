@@ -35,7 +35,15 @@ function writeRaw(dshHome, data) {
   if (typeof clean.default !== "string") clean.default = "";
   if (!clean.map || typeof clean.map !== "object" || Array.isArray(clean.map)) clean.map = {};
   fs.writeFileSync(file, JSON.stringify(clean, null, 2), "utf8");
+  automatch.invalidateCfgCache();
   return clean;
+}
+
+function liveOf(cfg) {
+  const model = automatch.lastModel();
+  if (!model) return { model: "", ruleId: "", how: "" };
+  const d = automatch.decide(model, cfg);
+  return { model, ruleId: d.ruleId || "", how: d.how || "" };
 }
 
 export function handleAutoMatchOp(dshHome, request) {
@@ -69,6 +77,7 @@ export function handleAutoMatchOp(dshHome, request) {
         map: cfg.map || {},
         rawEnabled: raw.enabled,
       },
+      live: liveOf(cfg),
       rules,
       path: automatch.statePath(dshHome),
     };
@@ -79,7 +88,12 @@ export function handleAutoMatchOp(dshHome, request) {
     const saved = writeRaw(dshHome, next);
     // 清掉 1 秒缓存，让下一次注入立刻读到新配置
     const cfg = automatch.readCfg(dshHome);
-    return { ok: true, cfg: { enabled: cfg.enabled, routes: cfg.routes, default: cfg.default, map: cfg.map }, saved };
+    return {
+      ok: true,
+      cfg: { enabled: cfg.enabled, routes: cfg.routes, default: cfg.default, map: cfg.map },
+      live: liveOf(cfg),
+      saved,
+    };
   }
   return undefined;
 }

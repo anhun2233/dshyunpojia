@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEFAULTS, decide } from "./patch/automatch.js";
+import { DEFAULTS, decide, resolve, invalidateCfgCache } from "./patch/automatch.js";
 import { handleAutoMatchOp } from "./patch/automatch-ui.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -138,6 +138,40 @@ if (disk.enabled !== false) fail("面板保存没有写入 enabled: false");
 if (disk.map?.grok !== "grok47") fail("面板保存没有更新 map");
 if (disk.default !== "unified") fail("面板保存没有更新 default");
 fs.rmSync(home, { recursive: true, force: true });
+
+const routeHome = fs.mkdtempSync(path.join(os.tmpdir(), "automatch-route-"));
+fs.mkdirSync(path.join(routeHome, "rules"), { recursive: true });
+fs.mkdirSync(path.join(routeHome, "dsh-purge"), { recursive: true });
+fs.writeFileSync(path.join(routeHome, "rules", "glm53f.md"), "FLASH-RULE\n", "utf8");
+const routeFile = path.join(routeHome, "dsh-purge", "automatch.json");
+fs.writeFileSync(routeFile, JSON.stringify({
+  enabled: true,
+  includes: false,
+  routes: {},
+  default: "",
+  map: { "glm-5.3-flash": "glm53f" },
+  _说明: "keep-route",
+}, null, 2));
+invalidateCfgCache();
+function modelCtx(model) {
+  return { agent: { session: { id: "s", requestHeader: () => ({ config: { model } }) } } };
+}
+const hit = resolve(routeHome, modelCtx("glm-5.3-flash-x2"));
+if (!hit || hit.ruleId !== "glm53f" || !String(hit.text).includes("FLASH-RULE")) {
+  fail("开：命中时应整段返回 glm53f，而不是 null");
+}
+invalidateCfgCache();
+const miss = resolve(routeHome, modelCtx("not-a-known-model"));
+if (miss !== null) fail("开但未命中时应返回 null，退回手动 prompt-inject.md");
+const flipped = handleAutoMatchOp(routeHome, { op: "automatchSet", cfg: { enabled: false } });
+if (!flipped || !flipped.ok || flipped.cfg.enabled !== false) fail("关闭开关没有写成 enabled false");
+const diskRoute = JSON.parse(fs.readFileSync(routeFile, "utf8"));
+if (diskRoute._说明 !== "keep-route") fail("只关开关时丢掉了 _说明");
+if (diskRoute.map?.["glm-5.3-flash"] !== "glm53f") fail("只关开关时丢掉了 map");
+invalidateCfgCache();
+const off = resolve(routeHome, modelCtx("glm-5.3-flash-x2"));
+if (off !== null) fail("关：即使模型能命中也必须返回 null，不能覆盖手动规则");
+fs.rmSync(routeHome, { recursive: true, force: true });
 
 if (problems.length) {
   console.error("check-rules 失败：");

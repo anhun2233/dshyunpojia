@@ -124,8 +124,8 @@ node "$Addon\check-rules.mjs"
 然后请用户重启。重启之后你再看面板：
 
 1. 打开左侧栏 Purge。
-2. 进入规则区块，规则列表上方应有一行「自动匹配」。
-3. 按钮文案是「已开启 · 点此关闭」或「已关闭 · 点此开启」。这就是面板开关，它写 `automatch.json` 的 `enabled`。
+2. 进入规则区块，规则列表上方应有一行「自动路由：开」或「自动路由：关」，旁边是「点此关闭」或「点此开启」。
+3. 这就是开关，只改 `<$DshHome>/dsh-purge/automatch.json` 的 `enabled`，其它键保留。默认是开。拨开关后下一轮对话生效，不用再重启。这次重启只是为了加载刚打进插件的代码。
 
 没有这一行：多半是 `client.js` 锚点没打上，或进程还是旧的。看恢复脚本的输出，不要去改仓库里的 `client.js`。
 
@@ -153,7 +153,13 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "$Addon\switch.ps1" <档案键>
 
 切换器结束时会写：**需要重启 DeepSeek Harness 才生效**。按这个提示请用户重启后再看，不要假设热加载已经吃到新文件。
 
-自动匹配的关系：`tuning.autoMatch` 为真、配置 `enabled` 为真、并且当前模型命中了一条有正文的规则时，注入用规则，**整段替换**，不会读刚才写入的 `prompt-inject.md`。手动切换要生效，先在面板关掉自动匹配，或让当前模型落空（没有 route / map / default）。命中失败时才回落到 `prompt-inject.md`。
+自动路由和手动规则的关系（和代码一致）：
+
+- **关**（`enabled: false`）：不自动匹配。用 `prompt-inject.md`，也就是 `switch.ps1` 写入的，或面板「启用」写进这份文件的规则。不会覆盖，也不会把自动规则拼上去。
+- **开且命中**：整段换成命中的规则，不用 `prompt-inject.md`，两份不叠加。
+- **开但没命中**：示例里 `default` 为空，退回 `prompt-inject.md`。若你把 `default` 写成了规则 id，没命中时用那条，不退回手动文件。
+
+命令：`.\switch.ps1 -AutoRoute on|off|status`。`切换.bat` 菜单里按 `a` 同样拨这个开关。拨开关不用重启；第一次打补丁之后要重启一次，面板上才会出现「自动路由」。补丁还要求 `tuning.json` 的 `autoMatch` 不是 false（恢复脚本写入的默认是 true）。详见 [README](README.md#auto-route-switch)。
 
 ## 自动匹配怎么选
 
@@ -175,8 +181,8 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "$Addon\switch.ps1" <档案键>
 
 两道开关都要开，注入才会走自动匹配：
 
-- `<$DshHome>/dsh-purge/tuning.json` 的 `autoMatch` 不为 false（补丁默认 true）
-- `<$DshHome>/dsh-purge/automatch.json` 的 `enabled` 不为 false（面板那个按钮）
+- `<$DshHome>/dsh-purge/tuning.json` 的 `autoMatch` 不为 false（补丁默认 true，一般不用改）
+- `<$DshHome>/dsh-purge/automatch.json` 的 `enabled` 不为 false（面板「自动路由」和 `switch.ps1 -AutoRoute`）
 
 改 json 或规则 md 之后，引擎大约 1 秒缓存。下一轮注入会读到，不必为了改映射再重启。**第一次打进 `node_modules` 的补丁**仍要重启，旧进程不会热加载那些文件。
 

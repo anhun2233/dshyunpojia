@@ -53,13 +53,17 @@ export function statePath(dshHome) {
   return path.join(dshHome, "dsh-purge", "automatch.json");
 }
 
-let cache = { at: 0, cfg: null, mtime: 0 };
+let cache = { at: 0, cfg: null, mtime: 0, file: "" };
+
+export function invalidateCfgCache() {
+  cache = { at: 0, cfg: null, mtime: 0, file: "" };
+}
 
 export function readCfg(dshHome) {
   const file = statePath(dshHome);
   let mtime = 0;
   try { mtime = fs.statSync(file).mtimeMs; } catch { mtime = 0; }
-  if (cache.cfg && cache.mtime === mtime && Date.now() - cache.at < 1000) return cache.cfg;
+  if (cache.cfg && cache.file === file && cache.mtime === mtime && Date.now() - cache.at < 1000) return cache.cfg;
   let saved = {};
   try { saved = JSON.parse(fs.readFileSync(file, "utf8")) || {}; } catch { saved = {}; }
   const normRoutes = {};
@@ -77,7 +81,7 @@ export function readCfg(dshHome) {
     default: typeof saved.default === "string" ? saved.default.trim() : DEFAULTS.default,
     map,
   };
-  cache = { at: Date.now(), cfg, mtime };
+  cache = { at: Date.now(), cfg, mtime, file };
   return cfg;
 }
 
@@ -85,6 +89,10 @@ export function readCfg(dshHome) {
 
 const bySession = new Map();
 let lastAny = "";
+
+export function lastModel() {
+  return lastAny;
+}
 
 export function record(sessionId, model) {
   const m = String(model || "").trim();
@@ -187,7 +195,12 @@ export function readRuleText(dshHome, ruleId) {
   }
 }
 
-/** 解析该用哪套文本。返回 { text, ruleId, model, how } 或 null。 */
+/**
+ * 解析该用哪套文本。返回 { text, ruleId, model, how } 或 null。
+ * null 表示不要替换：调用方继续用手动的 prompt-inject.md。
+ * 关闭（enabled false）、没有模型、前缀和 default 都没命中、规则文件是空的，都返回 null。
+ * 命中时只返回这一份正文，不和手动规则拼接。
+ */
 export function resolve(dshHome, context) {
   const cfg = readCfg(dshHome);
   if (!cfg.enabled) return null;

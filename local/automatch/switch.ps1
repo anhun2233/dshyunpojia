@@ -8,6 +8,7 @@
 #   .\switch.ps1 -DshHome $env:DSH_HOME grok
 #   .\switch.ps1 -Current
 #   .\switch.ps1 -Restore
+#   .\switch.ps1 -AutoRoute on|off|status
 
 param(
     [Parameter(Position = 0)]
@@ -15,6 +16,8 @@ param(
     [switch]$List,
     [switch]$Current,
     [switch]$Restore,
+    [ValidateSet('on', 'off', 'status')]
+    [string]$AutoRoute,
     [string]$DshHome = $env:DSH_HOME
 )
 
@@ -81,7 +84,56 @@ function Show-Current {
         Write-Host "  还没有 prompt-inject.md：$Target" -ForegroundColor Yellow
         Write-Host "  确认 DSH_HOME 指向这份 DSH 的数据目录，且插件已经生成该文件。切换会等到文件存在后再做。" -ForegroundColor Yellow
     }
+    [void](Show-AutoRoute)
     Write-Host ""
+}
+
+function Get-AutoRouteFile {
+    return Join-Path $DshHome 'dsh-purge\automatch.json'
+}
+
+function Show-AutoRoute {
+    $file = Get-AutoRouteFile
+    if (-not (Test-Path -LiteralPath $file)) {
+        Write-Host "  自动路由：开（还没有 automatch.json，默认开）" -ForegroundColor Green
+        return $true
+    }
+    try {
+        $text = [System.IO.File]::ReadAllText($file)
+        if ($text.Length -gt 0 -and [int][char]$text[0] -eq 0xFEFF) { $text = $text.Substring(1) }
+        $raw = $text | ConvertFrom-Json
+        $on = $true
+        if ($null -ne $raw.PSObject.Properties['enabled']) { $on = [bool]$raw.enabled }
+        if ($on) { Write-Host "  自动路由：开" -ForegroundColor Green }
+        else { Write-Host "  自动路由：关（只用手动启用的规则或 prompt-inject.md）" -ForegroundColor Yellow }
+        return $on
+    } catch {
+        Write-Host "  自动路由：automatch.json 读不了（$($_.Exception.Message)）" -ForegroundColor Red
+        return $true
+    }
+}
+
+function Set-AutoRoute([bool]$Enabled) {
+    $file = Get-AutoRouteFile
+    $dir = Split-Path -Parent $file
+    if (-not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    }
+    $literal = if ($Enabled) { 'true' } else { 'false' }
+    if (-not (Test-Path -LiteralPath $file)) {
+        Write-Utf8NoBom $file ("{`n  `"enabled`": $literal`n}`n")
+    } else {
+        $text = [System.IO.File]::ReadAllText($file)
+        if ($text.Length -gt 0 -and [int][char]$text[0] -eq 0xFEFF) { $text = $text.Substring(1) }
+        if ($text -match '"enabled"\s*:') {
+            $text = [regex]::Replace($text, '"enabled"\s*:\s*(true|false)', "`"enabled`": $literal", 1)
+        } else {
+            $text = [regex]::Replace($text, '\{', "{`n  `"enabled`": $literal,", 1)
+        }
+        Write-Utf8NoBom $file $text
+    }
+    if ($Enabled) { Write-Host "  自动路由已打开。下一轮对话生效，不用重启 DSH。" -ForegroundColor Green }
+    else { Write-Host "  自动路由已关闭。下一轮只用手动规则，不用重启 DSH。" -ForegroundColor Yellow }
 }
 
 function Switch-Profile([string]$key) {
@@ -165,6 +217,13 @@ function Require-DshHome {
 
 # ---- 入口 ----
 if ($List)    { Show-List; exit 0 }
+if ($AutoRoute) {
+    Require-DshHome
+    if ($AutoRoute -eq 'on') { Set-AutoRoute $true }
+    elseif ($AutoRoute -eq 'off') { Set-AutoRoute $false }
+    [void](Show-AutoRoute)
+    exit 0
+}
 Require-DshHome
 if ($Current) { Show-Current; exit 0 }
 if ($Restore) { Restore-Last; exit 0 }
@@ -174,9 +233,14 @@ if ($Name) { Switch-Profile $Name; exit 0 }
 while ($true) {
     Show-List
     Show-Current
-    Write-Host "  输入序号或档案名切换；r=还原上一份；q=退出" -ForegroundColor Cyan
+    Write-Host "  输入序号或档案名切换；a=开关自动路由；r=还原上一份；q=退出" -ForegroundColor Cyan
     $in = Read-Host "  选择"
     if ($in -eq 'q' -or $in -eq '') { break }
+    if ($in -eq 'a') {
+        $now = Show-AutoRoute
+        if ($now) { Set-AutoRoute $false } else { Set-AutoRoute $true }
+        continue
+    }
     if ($in -eq 'r') { Restore-Last; continue }
     $map = Get-Map
     if ($in -match '^\d+$') {

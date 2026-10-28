@@ -10,4 +10,6 @@ https://github.com/Alejandros17487/ai-jailbreaks
 
 `_original-lcs.md` 是 dsh-purge 插件原版注入正文的本地副本，用来切回原来的那一份。它不是上面那个外部仓库里的文件。
 
+上游仓库里的 `qwen-preferences.md` 在带进来时是空文件，这里没有收录。
+
 `rules/` 里的 `.md` 是其中一部分正文按规则 id 另存的副本，来源与本说明相同。见 [../rules/NOTICE.md](../rules/NOTICE.md)。

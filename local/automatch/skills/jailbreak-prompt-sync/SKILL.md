@@ -90,7 +90,8 @@ Get-ChildItem $dir -File | ForEach-Object {
 ```powershell
 $rules = Join-Path $env:DSH_HOME 'rules'
 Copy-Item (Join-Path $Addon 'prompts\xxx.md') (Join-Path $rules '<id>.md') -Force
-'{"name":"显示名","target":"prompt-inject.md"}' | Set-Content (Join-Path $rules '<id>.json') -Encoding UTF8
+$utf8 = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText((Join-Path $rules '<id>.json'), '{"name":"显示名","target":"prompt-inject.md"}', $utf8)
 ```
 
 全破档在 `name` 前加 `★`，Grok 专用加 `◆`，便于面板辨认。
@@ -102,7 +103,7 @@ Copy-Item (Join-Path $Addon 'prompts\xxx.md') (Join-Path $rules '<id>.md') -Forc
 - 长前缀优先（`deepseek-v4.1` 压过 `deepseek`）
 - 弱档模型指向 `unified`
 - 前缀小写、无空格；匹配时自动去 provider 前缀、`[...]` 和空格
-- 命中条件是「以该前缀开头」或「包含该前缀」
+- 默认只认「以该前缀开头」。`automatch.json` 里 `"includes": true` 时，开头都没命中才再按「包含该键」匹配
 
 ### 5. 校验
 
@@ -115,7 +116,8 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Addon '恢复自动匹
 ```powershell
 $plugin = Join-Path $env:DSH_HOME 'profiles\desktop\node_modules\dsh-purge-community'
 $probe = Join-Path $plugin 'automatch-v.mjs'
-@'
+$utf8 = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($probe, (@'
 import * as am from "./lib/automatch.js";
 const home = process.argv[2];
 const c = am.readCfg(home);
@@ -123,7 +125,7 @@ for (const m of ["deepseek-v4.1-flash","grok-4.7[1m]","GLM 5.3"]) {
   const id = am.matchRule(m, c.map);
   console.log(m, "→", id, id ? am.readRuleText(home, id).length + "B" : "");
 }
-'@ | Set-Content $probe -Encoding utf8NoBOM
+'@), $utf8)
 node $probe $env:DSH_HOME
 Remove-Item $probe
 ```

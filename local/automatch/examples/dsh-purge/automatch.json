@@ -1,5 +1,7 @@
 {
   "enabled": true,
+  "includes": false,
+  "_说明": "map 默认只认「代号以键开头」（长键优先）。要把「包含该键」也算命中，把 includes 改成 true。",
   "routes": {},
   "default": "",
   "map": {

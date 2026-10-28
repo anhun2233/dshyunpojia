@@ -22,11 +22,11 @@
 
 ## 手动切换
 
-双击前，先在用户环境里设好 `DSH_HOME`。
+双击前，先在用户环境里设好 `DSH_HOME`。两个 bat 有 `pwsh` 就用它，没有就退回 Windows PowerShell（`powershell`）。
 
 ```text
 切换.bat            交互菜单，输入序号切换
-查看档案.bat        只看列表（不需要 DSH_HOME）
+查看档案.bat        只看列表（不需要 DSH_HOME，也不建 backup\）
 ```
 
 ```powershell
@@ -44,7 +44,7 @@ $env:DSH_HOME = '你的 DSH 数据目录'
 <DSH_HOME>/prompt-inject.md
 ```
 
-也就是 Purge 面板「提示词」槽位里那份全局注入。切换前的副本写到本目录 `backup/`，当前档案名写到 `current.json`。这两样都是本机状态，不进 git。
+也就是 Purge 面板「提示词」槽位里那份全局注入。真正切换时，旧文写到本目录 `backup/`，当前档案名写到 `current.json`（无 BOM 的 UTF-8）。`-List` 不创建 `backup/`。文件还不存在时，`-Current` 只说明路径，不报错退出；切换本身仍会停下来，等这份文件出现。这两样运行时状态都不进 git。
 
 切换器写完会提示：**重启 DeepSeek Harness 后再确认**。自动匹配开着并且命中了规则时，注入用的是规则正文，不是这一份文件。想让手动切换生效，先在面板里关掉自动匹配，或保证当前模型没有命中任何规则。见 [INSTALL.md](INSTALL.md)。
 
@@ -57,9 +57,11 @@ $env:DSH_HOME = '你的 DSH 数据目录'
 引擎按当前模型代号选 `<DSH_HOME>/rules/<id>.md`。决策顺序在 `patch/automatch.js` 里：
 
 1. `routes`：清洗后的代号完全相等。
-2. `map`：前缀，长的优先；代号以该前缀开头，或包含该前缀，都算命中。
+2. `map`：前缀，长的优先。默认只认「代号以该键开头」。`automatch.json` 里 `"includes": true` 时，开头都没命中才再按「包含该键」匹配，而且不会压过已经对上的前缀。
 3. `default`：兜底规则 id，空则不兜底。
 4. 都没有 → 回落到 `prompt-inject.md`。
+
+`map` 里的每个规则 id 都要有 `rules/<id>.md` 和同名 `.json`。仓库里用 `node check-rules.mjs` 检查默认映射和示例配置。面板保存配置时会留下文件里已有的 `_说明` 一类字段，以及 `includes`。
 
 示例映射：`examples/dsh-purge/automatch.json`。拷到 `<DSH_HOME>/dsh-purge/automatch.json` 之后再改。面板上的「自动匹配」开关写的是这份文件里的 `enabled`。注入路径还要 `tuning.json` 的 `autoMatch` 不为 false；恢复脚本会在插件默认值里加上 `autoMatch: true`。
 
@@ -73,11 +75,12 @@ local/automatch/
 ├── 切换.bat / 查看档案.bat
 ├── 恢复自动匹配.ps1           ← 升级后重打补丁
 ├── profiles.json              ← 档案键 → 文件名
+├── check-rules.mjs            ← 映射 id 是否都有规则文件
 ├── patch/                     ← 打进已安装插件的引擎和面板片段
-├── prompts/                   ← 31 个提示词文件 + NOTICE.md
+├── prompts/                   ← 30 个提示词文件 + NOTICE.md
 ├── rules/                     ← 自动匹配规则库示例 + NOTICE.md
 ├── examples/dsh-purge/automatch.json
 └── skills/jailbreak-prompt-sync/SKILL.md
 ```
 
-`current.json` 和 `backup/` 运行之后才出现。
+`current.json` 和 `backup/` 在真正切换之后才出现。`-List` 不会建 `backup/`。

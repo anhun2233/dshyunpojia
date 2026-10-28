@@ -7,10 +7,13 @@
 | `00-original` | `prompts/_original-lcs.md` |
 | `bunny` | `prompts/spacebunny-agents.md` |
 | `ds41` | `prompts/deepseek-4-1.md` |
+| `dsv3` | `prompts/deepseek-v3.md` |
 | `dsv4` | `prompts/deepseek-v4.md` |
 | `gemini` | `prompts/gemini-4-argon.md` |
+| `glm52` | `prompts/glm-5.2.md` |
 | `glm53f` | `prompts/glm-5-3-flash.md` |
 | `glm53oc` | `prompts/glm5-3-opencode.md` |
+| `grok` | `prompts/grok-config.txt`（规则文件名是 `grok.md`，正文与 txt 相同） |
 | `grok47` | `prompts/grok-4.7.md` |
 | `grokbuild` | `prompts/grok-build.md` |
 | `kimi3` | `prompts/kimi-k3-agents.md` |

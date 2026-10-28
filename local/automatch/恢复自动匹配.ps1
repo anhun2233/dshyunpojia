@@ -40,6 +40,11 @@ $AutoUi  = Join-Path $Plugin 'lib\automatch-ui.js'
 $AutoCfg = Join-Path $DshHome 'dsh-purge\automatch.json'
 
 function Say($m, $c = 'Gray') { Write-Host $m -ForegroundColor $c }
+function Write-Utf8NoBom([string]$Path, [string]$Text) {
+    # Windows PowerShell 5.1 的 Set-Content -Encoding UTF8 会写 BOM。5.1 和 7 都走无 BOM。
+    $utf8 = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($Path, $Text, $utf8)
+}
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $changed = 0
 
@@ -72,7 +77,7 @@ if ($t -notmatch 'autoMatch') {
   $a = 'refusalRetry: false, // 模型推脱时自动加一句加固重试一次（llm/stream 钩子）'
   if ($t.Contains($a)) {
     $t = $t.Replace($a, $a + "`n  autoMatch: true, // 按当前模型代号前缀自动选规则（见 automatch.js）")
-    $t | Set-Content $Tuning -Encoding UTF8 -NoNewline
+    Write-Utf8NoBom $Tuning $t
     Say "  [+] tuning.js 已加 autoMatch 开关" 'Green'; $changed++
   } else { Say "  [!] tuning.js 锚点没找到" 'Yellow' }
 } else { Say "  [=] tuning.js 已有 autoMatch" }
@@ -140,7 +145,7 @@ if ($i -notmatch 'automatchGet') {
 }
 if ($dirty) {
   Copy-Item $Index "$Index.bak-$stamp" -Force -ErrorAction SilentlyContinue
-  $i | Set-Content $Index -Encoding UTF8 -NoNewline
+  Write-Utf8NoBom $Index $i
 }
 
 # ---------- 4. redteam/ui.js（备用通道，可选） ----------
@@ -167,7 +172,7 @@ if ($u -notmatch 'handleAutoMatchOp\(dshHomeOf') {
 }
 if ($udirty) {
   Copy-Item $Ui "$Ui.bak-$stamp" -Force -ErrorAction SilentlyContinue
-  $u | Set-Content $Ui -Encoding UTF8 -NoNewline
+  Write-Utf8NoBom $Ui $u
 }
 
 # ---------- 5. client.js 面板控件 ----------
@@ -196,7 +201,7 @@ if ($c -notmatch 'h\(AutoMatchBox') {
 }
 if ($cdirty) {
   Copy-Item $Client "$Client.bak-$stamp" -Force -ErrorAction SilentlyContinue
-  $c | Set-Content $Client -Encoding UTF8 -NoNewline
+  Write-Utf8NoBom $Client $c
 }
 
 # ---------- 6. 配置 ----------

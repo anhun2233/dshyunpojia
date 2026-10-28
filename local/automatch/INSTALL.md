@@ -63,13 +63,13 @@ node (Join-Path $env:DSH_HOME "profiles\<profile>\node_modules\dsh-purge-communi
 
 - `switch.ps1`、`切换.bat`、`查看档案.bat`、`profiles.json`
 - `恢复自动匹配.ps1` 和 `patch/`（三个 js）
-- `prompts/`、`rules/`、`examples/dsh-purge/automatch.json`
+- `prompts/`、`rules/`、`examples/dsh-purge/automatch.json`、`check-rules.mjs`
 
 不要拷运行时状态。仓库里本来也没有 `current.json` 和 `backup/`。
 
 ## C. 打补丁、放入示例配置、重启、看面板
 
-在 `$Addon`（或用户指定的、旁边带有 `patch/` 的目录）执行。PowerShell 7（`pwsh`）：
+在 `$Addon`（或用户指定的、旁边带有 `patch/` 的目录）执行。有 `pwsh` 就用 PowerShell 7；没有就用 Windows PowerShell 5.1（`powershell`）。两个 bat 会自己选。脚本写入补丁和 `current.json` 时用无 BOM 的 UTF-8，5.1 和 7 都不会在文件头加 BOM。
 
 ```powershell
 $env:DSH_HOME = '<$DshHome>'
@@ -95,6 +95,14 @@ profile 是 `desktop` 时可以省略 `-ProfileName`。
 
 规则库。自动匹配读的是 `<$DshHome>/rules/<id>.md`，不是附加组件目录里的 `rules/`。把 `$Addon/rules/*.md` 和同名 `.json` 拷到 `<$DshHome>/rules/`。同名文件已存在就先问。`state.json` 会把面板当前规则设成 `grok47`，已有这份文件时默认不要覆盖。
 
+拷完后在附加组件目录跑：
+
+```powershell
+node "$Addon\check-rules.mjs"
+```
+
+它检查 `patch/automatch.js` 的 `DEFAULTS` 和 `examples/dsh-purge/automatch.json` 里每个规则 id 都有 `rules/<id>.md` 与 `.json`。失败就先补文件，不要带着会落空的映射去重启。
+
 然后请用户重启。重启之后你再看面板：
 
 1. 打开左侧栏 Purge。
@@ -113,13 +121,14 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "$Addon\switch.ps1" -List
 pwsh -NoProfile -ExecutionPolicy Bypass -File "$Addon\switch.ps1" <档案键>
 ```
 
-也可以双击 `$Addon\切换.bat`（需要环境变量 `DSH_HOME`）。`查看档案.bat` 只列档案。
+也可以双击 `$Addon\切换.bat`（需要环境变量 `DSH_HOME`）。`查看档案.bat` 只列档案。两个 bat 在没有 `pwsh` 时改用 `powershell`。位置参数是档案键：`switch.ps1 grok`。参数名不是 `$Profile`。
 
 | 动作 | 结果 |
 | --- | --- |
 | 写入 | `<$DshHome>/prompt-inject.md` 被换成 `prompts/` 里该档案的全文 |
-| 备份 | `$Addon/backup/prompt-inject-<时间>-<档案键>-prev.md` |
-| 状态 | `$Addon/current.json`（本机文件，不要提交） |
+| 备份 | 只有真正切换才建 `$Addon/backup/`，文件名 `prompt-inject-<时间>-<档案键>-prev.md`。`-List` 不建这个目录 |
+| 状态 | `$Addon/current.json`（无 BOM 的 UTF-8，本机文件，不要提交） |
+| 查看 | `-Current` 在 `prompt-inject.md` 还不存在时只打印路径，退出码仍是 0 |
 | 还原 | `.\switch.ps1 -Restore` 用 `backup/` 里最新一份盖回 `prompt-inject.md` |
 
 档案键在 `profiles.json`。`-List` 或 `查看档案.bat` 能看到。
@@ -140,7 +149,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "$Addon\switch.ps1" <档案键>
 然后按这个顺序（`decide`）：
 
 1. **routes**：清洗后的整串等于键。面板「精确指定」写的就是这里。
-2. **map**：键越长越先比。清洗后的代号**以该键开头**，或**包含该键**，即命中。所以 `glm-5.3` 会压过 `glm`，但过短的键可能误伤，加键之前先想清楚。
+2. **map**：键越长越先比。清洗后的代号**以该键开头**才命中。`glm-5.3` 会压过 `glm`。过短的键仍可能吃掉一串更长的开头，加键之前先想清楚。只有 `automatch.json` 里 `"includes": true` 时，开头全部落空之后才再做一次「包含该键」。包含匹配不会抢在真正的前缀之前。示例配置里的 `includes` 是 `false`。
 3. **default**：非空才用。
 4. 否则返回空，调用方使用 `prompt-inject.md`。
 
@@ -185,7 +194,8 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File "$Addon\switch.ps1" <档案键>
 4. 编辑 `<$DshHome>/dsh-purge/automatch.json`（没有就从示例拷一份再改）：
 
 - 某个完整代号固定用一套：放进 `routes`，键用清洗后的代号。
-- 一系列型号共用：放进 `map`，长前缀写全，避免短键先被 `includes` 命中。
+- 一系列型号共用：放进 `map`，长前缀写全。默认只认开头。需要「包含」时把 `includes` 设为 `true`，并再跑一次 `check-rules.mjs`。
+- 新 id 必须同时有 `rules/<id>.md` 和 `rules/<id>.json`。映射指向不存在的 id 时，引擎会悄悄回落到 `prompt-inject.md`。
 - 不确定的型号可以指向已有的 `unified`，或留空让它回落 `prompt-inject.md`。
 
 面板规则列表刷新后能看到新 id。自动匹配那一行的下拉读的是同一份 `rules/` 目录。

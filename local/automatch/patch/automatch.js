@@ -2,7 +2,8 @@
 //
 // 决策顺序（优先级从高到低）：
 //   1. routes  —— 精确指定：模型代号（清洗后）完全相等 → 用指定规则
-//   2. map     —— 前缀匹配：长前缀优先，命中即用
+//   2. map     —— 前缀匹配：长前缀优先。默认只认「以该键开头」。
+//                 automatch.json 里 "includes": true 时，开头都没命中才再按「包含该键」匹配。
 //   3. default —— 兜底规则 id（可为空）
 //   4. 以上都没命中 → 返回 null，由调用方回落到 prompt-inject.md
 //
@@ -14,6 +15,7 @@ import path from "node:path";
 
 export const DEFAULTS = {
   enabled: true,
+  includes: false, // true 时，前缀（开头）都没命中才做一次 includes
   routes: {},   // "deepseek-v4.1-flash": "ds41"
   default: "",  // "" = 不兜底，回落 prompt-inject.md
   map: {
@@ -65,6 +67,7 @@ export function readCfg(dshHome) {
   const map = { ...DEFAULTS.map, ...(saved.map && typeof saved.map === "object" ? saved.map : {}) };
   const cfg = {
     enabled: saved.enabled === undefined ? DEFAULTS.enabled : saved.enabled !== false,
+    includes: saved.includes === undefined ? DEFAULTS.includes === true : saved.includes === true,
     routes: normRoutes,
     default: typeof saved.default === "string" ? saved.default.trim() : DEFAULTS.default,
     map,
@@ -117,7 +120,7 @@ export function normalizeModel(model) {
 
 // ---- 三层决策 ----
 
-/** 返回 { ruleId, how } —— how ∈ route | prefix | default */
+/** 返回 { ruleId, how } —— how ∈ route | prefix | contains | default */
 export function decide(model, cfg) {
   const m = normalizeModel(model);
   if (!m) return { ruleId: "", how: "" };
@@ -127,13 +130,18 @@ export function decide(model, cfg) {
     return { ruleId: cfg.routes[m], how: "route" };
   }
 
-  // 2) 前缀匹配（长前缀优先）
+  // 2) 前缀匹配（长前缀优先）。先全部试开头，避免更长的「包含」压过真正的前缀。
   const keys = Object.keys(cfg.map || {})
     .map((k) => [String(k).toLowerCase().replace(/\s+/g, ""), cfg.map[k]])
     .filter(([k, v]) => k && typeof v === "string" && v)
     .sort((a, b) => b[0].length - a[0].length);
   for (const [prefix, ruleId] of keys) {
-    if (m.startsWith(prefix) || m.includes(prefix)) return { ruleId, how: "prefix" };
+    if (m.startsWith(prefix)) return { ruleId, how: "prefix" };
+  }
+  if (cfg.includes === true) {
+    for (const [prefix, ruleId] of keys) {
+      if (m.includes(prefix)) return { ruleId, how: "contains" };
+    }
   }
 
   // 3) 兜底

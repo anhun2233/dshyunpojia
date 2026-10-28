@@ -19,15 +19,21 @@ function readRaw(dshHome) {
 function writeRaw(dshHome, data) {
   const file = automatch.statePath(dshHome);
   ensureDir(path.dirname(file));
-  const clean = {
-    enabled: data.enabled !== false,
-    routes: data.routes && typeof data.routes === "object" ? data.routes : {},
-    default: typeof data.default === "string" ? data.default : "",
-    map: data.map && typeof data.map === "object" ? data.map : {},
-    _说明: data._说明,
-    _怎么精确指定: data._怎么精确指定,
-    _档位含义: data._档位含义,
-  };
+  // 面板只提交 enabled/routes/default/map。先铺开磁盘上的原文，说明字段和 includes 才不会被清掉。
+  const prev = readRaw(dshHome);
+  const clean = { ...prev };
+  if (Object.prototype.hasOwnProperty.call(data, "enabled")) clean.enabled = data.enabled !== false;
+  if (data.routes && typeof data.routes === "object" && !Array.isArray(data.routes)) clean.routes = data.routes;
+  if (typeof data.default === "string") clean.default = data.default;
+  if (data.map && typeof data.map === "object" && !Array.isArray(data.map)) clean.map = data.map;
+  if (Object.prototype.hasOwnProperty.call(data, "includes")) clean.includes = data.includes === true;
+  for (const [k, v] of Object.entries(data)) {
+    if (k.startsWith("_") && v !== undefined) clean[k] = v;
+  }
+  if (typeof clean.enabled !== "boolean") clean.enabled = true;
+  if (!clean.routes || typeof clean.routes !== "object" || Array.isArray(clean.routes)) clean.routes = {};
+  if (typeof clean.default !== "string") clean.default = "";
+  if (!clean.map || typeof clean.map !== "object" || Array.isArray(clean.map)) clean.map = {};
   fs.writeFileSync(file, JSON.stringify(clean, null, 2), "utf8");
   return clean;
 }

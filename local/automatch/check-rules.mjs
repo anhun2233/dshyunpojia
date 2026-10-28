@@ -92,13 +92,15 @@ assertDecide(
 
 const sampleCfg = { routes: {}, default: "", includes: false, map: DEFAULTS.map };
 const samples = [
-  ["GLM 5.3 flash", "glm53f", "prefix"],
-  ["GLM 5.2 flash", "glm52", "prefix"],
+  ["glm-5.3-flash", "glm53f", "prefix"],
+  ["glm-5.3-flash-x2", "glm53f", "prefix"],
+  ["GLM 5.3 Flash", "glm53f", "prefix"],
+  ["openrouter/glm-5.3-flash-ts", "glm53f", "prefix"],
   ["glm-5.3-ts", "glm53f", "prefix"],
-  ["Kimi K3 xxx", "kimi3", "prefix"],
-  ["openrouter/deepseek-v4.1-xx", "dsv4", "prefix"],
-  ["claude-sonnet-4.5[1m]", "unified", "prefix"],
-  ["grok-4.7-fast", "grok", "prefix"],
+  ["kimi-k3", "kimi3", "prefix"],
+  ["kimi-k3-xxx", "kimi3", "prefix"],
+  ["qwen-3.7-xx", "qwen", "prefix"],
+  ["GLM 5.2 flash", "glm52", "prefix"],
   ["not-a-known-model", "", ""],
 ];
 for (const [model, ruleId, how] of samples) {

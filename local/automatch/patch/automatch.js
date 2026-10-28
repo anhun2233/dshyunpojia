@@ -2,11 +2,11 @@
 //
 // 决策顺序（优先级从高到低）：
 //   1. routes  —— 精确指定：模型代号（清洗后）完全相等 → 用指定规则
-//   2. map     —— 只看前缀，忽略中转站加在后面的后缀（-ts、-xxx、flash 等）。
-//                 比较前会把模型和键里的 - _ . 去掉，再按去掉之后的长度从长到短做 startsWith。
-//                 这样「GLM 5.2 flash」对上 glm-5.2，而不是更短的 glm。
-//                 默认不做「包含」匹配。automatch.json 里 "includes": true 时，
-//                 开头都没命中才再按包含匹配。用户电脑上的旧脚本默认带 includes 兜底，和这里不同。
+//   2. map     —— 键写官方模型全名（含厂商自己的后缀，如 flash / pro / turbo）。
+//                 最长键优先，只比开头。官方名后面中转站再加的 -x2、-ts、中转代号会被忽略。
+//                 短键（glm、kimi）只是兜底。比较前去掉空白和 - _ . ，空格写法和连字符写法才能对上。
+//                 默认不做包含匹配。includes: true 时，开头都没命中才再包含匹配。
+//                 用户电脑上的旧脚本默认还带 includes 兜底，和这里不同。
 //   3. default —— 兜底规则 id（可为空）
 //   4. 以上都没命中 → 返回 null，由调用方回落到 prompt-inject.md
 //
@@ -30,12 +30,14 @@ export const DEFAULTS = {
     "grok-4.7": "grok",
     "grok-4": "grok",
     "grok": "grok",
+    "glm-5.3-flash": "glm53f",
     "glm-5.3": "glm53f",
     "glm-5.2": "glm52",
     "glm": "glm53f",
     "zhipu": "glm53f",
     "kimi-k3": "kimi3",
     "kimi": "kimi3",
+    "qwen-3.7": "qwen",
     "qwen": "qwen",
     "gemini": "gemini",
     "claude-opus": "unified",
@@ -123,9 +125,10 @@ export function normalizeModel(model) {
     .trim();
 }
 
-// 前缀比较专用。清洗后的代号和 map 键都再去掉 - _ . 。
-// 只去空白时，「GLM 5.2 flash」变成 glm5.2flash，不以键 glm-5.2 开头，
-// 会误命中更短的 glm。去掉分隔符后是 glm52flash，以 glm52 开头，后缀 flash 留在后面。
+// 前缀比较专用。清洗后的代号和 map 键都再去掉 - _ . ，只为对齐空格和连字符两种写法。
+// 「GLM 5.3 Flash」变成 glm53flash，键 glm-5.3-flash 也是 glm53flash，开头就能对上。
+// flash / pro 这类官方后缀留在键里，不会被这段替换删掉。中转站加在官方名后面的字符
+// 因为不是更长的键，比开头时留在尾部，不单独成一条规则。
 export function foldPrefix(s) {
   return String(s || "").replace(/[-_.]/g, "");
 }
@@ -142,8 +145,9 @@ export function decide(model, cfg) {
     return { ruleId: cfg.routes[m], how: "route" };
   }
 
-  // 2) 只看前缀。键同样小写、去空白，再和模型一起去掉 - _ . 。
-  //    按去掉分隔符之后的长度从长到短比，命中即停。后面的 -ts / -xxx / flash 不影响。
+  // 2) 官方全名当键，最长优先，只比开头。
+  //    键同样小写、去空白，再和模型一起去掉 - _ . （只对齐写法，不删 flash 这类官方后缀）。
+  //    中转站加在官方名后面的 -x2 / -ts 因为不是更长的键，留在串尾。短键只是兜底。
   //    先做完所有 startsWith，可选的 includes 不能抢走更长的真正前缀。
   const folded = foldPrefix(m);
   const keys = Object.keys(cfg.map || {})

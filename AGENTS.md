@@ -408,7 +408,7 @@ Windows Electron 的递归删除可能进入 Junction。清理使用 `removeTree
 逐步操作（先问目录和 profile，再执行）见 [local/automatch/INSTALL.md](local/automatch/INSTALL.md)。这里只留边界：
 
 - 手动切换改的是 `<DSH_HOME>/prompt-inject.md`。切换器提示要重启后再确认。`current.json` 和 `backup/` 是本机状态，不要提交。
-- 自动匹配命中时整段替换注入，不读 `prompt-inject.md`。两道开关：`tuning.json` 的 `autoMatch`，以及 `dsh-purge/automatch.json` 的 `enabled`（面板上的「自动匹配」按钮）。`map` 只看前缀：比较前去掉 `-` `_` `.`，长键优先；`"includes": true` 才做包含匹配。例子见 `local/automatch/README.md`。改映射后跑 `node local/automatch/check-rules.mjs`，每个 id 都要有 `rules/<id>.md` 和 `.json`。
+- 自动匹配命中时整段替换注入，不读 `prompt-inject.md`。两道开关：`tuning.json` 的 `autoMatch`，以及 `dsh-purge/automatch.json` 的 `enabled`（面板上的「自动匹配」按钮）。`map` 的键是官方模型全名（含 flash 这类厂商后缀），最长键优先、只比开头；中转站加在后面的后缀忽略。例子见 `local/automatch/README.md`。改映射后跑 `node local/automatch/check-rules.mjs`，每个 id 都要有 `rules/<id>.md` 和 `.json`。
 - 插件升级会清掉 `node_modules` 里的补丁。让用户再跑一次 `local/automatch/恢复自动匹配.ps1`。规则库和 `automatch.json` 不在插件包里，升级不会清掉。
 - 锚点对不上时脚本打印 `[!]` 并停止改那一处。不要整文件覆盖，不要为了消黄字改权限或删规则。
 - `prompts/` 来自 https://github.com/Alejandros17487/ai-jailbreaks 。该仓库没有许可证文件，README 写明仅供研究与教育使用。不要声称这些正文有许可证。`_original-lcs.md` 是插件原版注入的本地副本。

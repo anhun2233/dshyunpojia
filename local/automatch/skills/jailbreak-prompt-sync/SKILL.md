@@ -103,7 +103,7 @@ $utf8 = New-Object System.Text.UTF8Encoding $false
 - 长前缀优先（`deepseek-v4.1` 压过 `deepseek`）
 - 弱档模型指向 `unified`
 - 前缀小写、无空格；匹配时自动去 provider 前缀、`[...]` 和空格
-- 默认只认前缀。比较前去掉 `-` `_` `.`，长键优先，后缀不影响。`"includes": true` 时开头都没命中才做包含匹配。用户电脑旧引擎默认还有 includes 兜底，仓库默认没有
+- 键写官方全名，含 flash 这类厂商后缀。最长键优先，只比开头；中转站加在官方名后面的 -x2、-ts 忽略。短键是兜底。比较前去掉 `-` `_` `.` 只为对齐写法。`"includes": true` 时开头都没命中才做包含匹配。用户电脑旧引擎默认还有 includes 兜底，仓库默认没有
 
 ### 5. 校验
 

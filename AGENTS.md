@@ -407,7 +407,7 @@ Windows Electron 的递归删除可能进入 Junction。清理使用 `removeTree
 
 逐步操作（先问目录和 profile，再执行）见 [local/automatch/INSTALL.md](local/automatch/INSTALL.md)。这里只留边界：
 
-- 手动切换改的是 `<DSH_HOME>/prompt-inject.md`。切换器提示要重启后再确认。`current.json` 和 `backup/` 是本机状态，不要提交。
+- 手动切换改的是 `<DSH_HOME>/prompt-inject.md`。下一轮组装按 mtime 重读，缓存 200ms，不用为了切换重启。本进程若已把旧正文钉进 `committedOverride`，外部改写会被压住，这时才退出重开。`current.json` 和 `backup/` 是本机状态，不要提交。
 - 自动匹配命中时整段替换注入，不读 `prompt-inject.md`。两道开关：`tuning.json` 的 `autoMatch`，以及 `dsh-purge/automatch.json` 的 `enabled`（面板上的「自动匹配」按钮）。`map` 的键是官方模型全名（含 flash 这类厂商后缀），最长键优先、只比开头；中转站加在后面的后缀忽略。例子见 `local/automatch/README.md`。改映射后跑 `node local/automatch/check-rules.mjs`，每个 id 都要有 `rules/<id>.md` 和 `.json`。
 - 插件升级会清掉 `node_modules` 里的补丁。让用户再跑一次 `local/automatch/恢复自动匹配.ps1`。规则库和 `automatch.json` 不在插件包里，升级不会清掉。
 - 锚点对不上时脚本打印 `[!]` 并停止改那一处。不要整文件覆盖，不要为了消黄字改权限或删规则。

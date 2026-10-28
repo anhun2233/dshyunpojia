@@ -14,7 +14,7 @@
 
 插件本身只会往对话里贴一份提示词。这个目录是加在插件外面的三件事，不改插件仓库里的源码：
 
-1. **多套提示词，可以手动换。** `prompts/` 里按模型放了 30 套正文，`profiles.json` 给每套一个短名字。`switch.ps1 grok` 会把选中的那份写进 `<DSH_HOME>/prompt-inject.md`。换完要重启 DSH。
+1. **多套提示词，可以手动换。** `prompts/` 里按模型放了 30 套正文，`profiles.json` 给每套一个短名字。`switch.ps1 grok` 会把选中的那份写进 `<DSH_HOME>/prompt-inject.md`。下一轮组装就会按文件时间重读，不用为了这次切换重启。详见下面「什么时候要重启」。
 2. **按当前模型自动换提示词。** 开关是 `automatch.json` 里的 `enabled`，默认开。开着并且命中时，整段换成对应规则，不和手动那份拼在一起。没命中，或把开关关掉，就退回你在面板点「启用」后写进目标文件的规则，或 `switch.ps1` 写入的 `prompt-inject.md`。键写官方全名（`flash` 这类厂商后缀算名字），中转站加在官方名后面的 `-ts`、`-x2` 不管。规则在下面一节。
 3. **插件升级之后把补丁打回去。** 自动匹配要改已经装好的插件文件。升级会把那些改动盖掉，再跑一次 `恢复自动匹配.ps1`。提示词库和 `automatch.json` 不在插件包里，升级不会清掉。
 
@@ -39,6 +39,19 @@
 .\switch.ps1 -AutoRoute off
 .\switch.ps1 -AutoRoute on
 ```
+
+## 什么时候要重启
+
+不用为了换 `prompt-inject.md` 重启。`lib/index.js` 的 `refreshHungOperator` 在每次 `system-prompt/assemble`、`session/created`、`agent-preset/selected`，以及注入回落时都会看这份文件的修改时间。200ms 内且时间没变才用缓存；时间变了就 `syncPromptInjectOnDiskSync` 再 `resolveInjectText`。用户自己的正文不会被同步成插件默认稿。
+
+仍要退出重开 DSH 的只有这些情况：
+
+1. **第一次**把自动路由补丁打进已安装的插件。
+2. **插件升级之后**重跑 `恢复自动匹配.ps1`。补丁在 `node_modules` 里，当前进程不会热加载。
+
+还有一种源码里的例外，不是缓存造成的：本进程只要成功解析过一次，`refreshHungOperator` 就会 `rememberCommittedOverride`，把当时的正文钉在内存里。`resolveInjectText` 先看这颗钉子，再看磁盘。提示词框点保存会把钉子更新成新稿，所以框里保存下一轮就生效。`switch.ps1` / `切换.bat` 只改磁盘，钉子还是旧稿时，新文件要退出重开才会进注入。进程刚启动、还没钉过时，下一轮就读磁盘，不用重启。
+
+面板规则「启用」写的是 `<DSH_HOME>/AGENTS.md` 或 `CLAUDE.md`（`target` 不是这两份时会被改成 `AGENTS.md`），不写 `prompt-inject.md`，也不被这颗钉子挡住。插件激活接口的提示是新会话生效，不是重启进程。
 
 安装步骤：[INSTALL.md](INSTALL.md)。
 
@@ -140,7 +153,7 @@ $env:DSH_HOME = '你的 DSH 数据目录'
 
 也就是 Purge 面板「提示词」槽位里那份全局注入。真正切换时，旧文写到本目录 `backup/`，当前档案名写到 `current.json`（无 BOM 的 UTF-8）。`-List` 不创建 `backup/`。文件还不存在时，`-Current` 只说明路径，不报错退出；切换本身仍会停下来，等这份文件出现。这两样运行时状态都不进 git。
 
-切换器写完会提示：**重启 DeepSeek Harness 后再确认**。自动匹配开着并且命中了规则时，注入用的是规则正文，不是这一份文件。想让手动切换生效，先在面板里关掉自动匹配，或保证当前模型没有命中任何规则。见 [INSTALL.md](INSTALL.md)。
+切换器写完的提示是：下一轮组装按 `prompt-inject.md` 的修改时间重读，不用为了缓存重启。自动匹配开着并且命中了规则时，注入用的是规则正文，不是这一份文件。想让手动切换生效，先关掉自动路由，或让当前模型没有命中。见 [INSTALL.md](INSTALL.md)。
 
 面板上红队演练台的角色提示词是另一批文件（`redteam/engagements/<靶标>/agents/<角色>.md`），这个切换器不动它们。
 

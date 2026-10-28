@@ -164,7 +164,8 @@ function Switch-Profile([string]$key) {
     Write-Host "  写入: $Target  ($((Get-Item $Target).Length) 字节)"
     Write-Host "  备份: $bak"
     Write-Host ""
-    Write-Host "  ★ 需要重启 DeepSeek Harness 才生效（提示词只在启动时读一次）" -ForegroundColor Yellow
+    Write-Host "  ★ 已写入 prompt-inject.md。下一轮组装按文件 mtime 重读（缓存最多 200ms），不用为了缓存重启。" -ForegroundColor Yellow
+    Write-Host "  若这个 DSH 进程里提示词框已经钉过旧正文，磁盘新稿会被压住，这时才要退出重开。" -ForegroundColor Yellow
     Write-Host ""
 }
 
@@ -200,7 +201,8 @@ function Restore-Last {
         Write-Host "  prompt-inject.md 原先不存在，已按备份写出: $($bak.Name)" -ForegroundColor Green
     }
     Write-Host "  目标文件现在: $Target  ($bytes 字节)"
-    Write-Host "  ★ 重启 DSH 生效" -ForegroundColor Yellow
+    Write-Host "  ★ 已写回 prompt-inject.md。下一轮组装按 mtime 重读，不用为了缓存重启。" -ForegroundColor Yellow
+    Write-Host "  若提示词框已经钉过旧正文，要退出重开才会换成这份。" -ForegroundColor Yellow
     Write-Host ""
 }
 

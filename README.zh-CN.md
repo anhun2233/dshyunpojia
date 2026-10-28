@@ -222,7 +222,7 @@ npm run smoke            # 发行包冒烟
 
 ## 本 fork 附加：按模型切换提示词
 
-上游插件只注入一份 `<DSH_HOME>/prompt-inject.md`。本仓库在 [`local/automatch/`](local/automatch/) 放了一份插件之外的附加组件：多套提示词可以手动换，并按官方模型全名的前缀自动换提示词（`flash` 这类厂商后缀算名字，中转站加在后面的 `-ts`、`-x2` 不管）。它不改插件源码；自动匹配打在已经安装的那份 `node_modules` 上，插件升级会清掉，需要再跑恢复脚本。规则和例子见 [自动匹配规则](local/automatch/README.md#prefix-rules)。
+上游插件只注入一份 `<DSH_HOME>/prompt-inject.md`。本仓库在 [`local/automatch/`](local/automatch/) 放了一份插件之外的附加组件：多套提示词可以手动换，并按官方模型全名的前缀自动换提示词（`flash` 这类厂商后缀算名字，中转站加在后面的 `-ts`、`-x2` 不管）。它不改插件源码；自动匹配打在已经安装的那份 `node_modules` 上，插件升级会清掉，需要再跑恢复脚本。换 `prompt-inject.md` 下一轮组装就按修改时间重读，不用为了切换重启；提示词框若已钉过旧稿则要退出重开。规则和例子见 [自动匹配规则](local/automatch/README.md#prefix-rules)。
 
 提示词正文来自 [Alejandros17487/ai-jailbreaks](https://github.com/Alejandros17487/ai-jailbreaks)。该仓库**没有许可证文件**，README 写明仅供研究与教育使用。这里只保留来源说明，不对这些正文主张许可证。
 

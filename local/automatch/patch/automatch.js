@@ -36,6 +36,7 @@ export const DEFAULTS = {
     "glm": "glm53f",
     "zhipu": "glm53f",
     "kimi-k3": "kimi3",
+    "kimi-k2": "kimi2",
     "kimi": "kimi3",
     "qwen-3.7": "qwen",
     "qwen": "qwen",
@@ -45,6 +46,7 @@ export const DEFAULTS = {
     "claude": "unified",
     "opus": "unified",
     "sonnet": "unified",
+    "mistral-large": "mistral-large",
     "mistral": "unified",
   },
 };

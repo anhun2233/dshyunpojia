@@ -82,6 +82,9 @@
 | `glm-5.3-ts` | `glm-5.3-ts` | `glm53ts` | `glm-5.3` | `glm53f` |
 | `kimi-k3` | `kimi-k3` | `kimik3` | `kimi-k3` | `kimi3` |
 | `kimi-k3-xxx` | `kimi-k3-xxx` | `kimik3xxx` | `kimi-k3` | `kimi3` |
+| `kimi-k2-xxx` | `kimi-k2-xxx` | `kimik2xxx` | `kimi-k2` | `kimi2` |
+| `mistral-large-4-xx` | `mistral-large-4-xx` | `mistrallarge4xx` | `mistral-large` | `mistral-large` |
+| `mistral-small` | `mistral-small` | `mistralsmall` | `mistral` | `unified` |
 | `qwen-3.7-xx` | `qwen-3.7-xx` | `qwen37xx` | `qwen-3.7` | `qwen` |
 
 `GLM 5.2 flash` 命中 `glm-5.2` → `glm52`。提示词里写的是 GLM-5.2，没有 flash 这个官方后缀，所以不会配到 `glm-5.3-flash`。
@@ -97,12 +100,14 @@
 3. 规则正文要有 `<DSH_HOME>/rules/<id>.md` 和同名 `.json`。
 4. 跑 `node check-rules.mjs`。
 
-这次在原有键之外只加了两条，依据都在仓库文件里：
+按正文补进 `map`、且没有改掉原有键值的有：
 
-- `glm-5.3-flash` → `glm53f`。`prompts/glm-5-3-flash.md`（以及同文的 `rules/glm53f.md`）写明 “GLM 5.3 Flash”。
-- `qwen-3.7` → `qwen`。`prompts/qwen-3.7.md`（以及同文的 `rules/qwen.md`）写明 “Qwen 3.7”。
+- `glm-5.3-flash` → `glm53f`。`prompts/glm-5-3-flash.md` 写明 “GLM 5.3 Flash”。
+- `qwen-3.7` → `qwen`。`prompts/qwen-3.7.md` 写明 “Qwen 3.7”。
+- `kimi-k2` → `kimi2`。`prompts/kimi-k2.md` 写明 “Kimi k2”。短键 `kimi` 仍是 `kimi3`。
+- `mistral-large` → `mistral-large`。`prompts/mistral-large-4.md` 写明 “Mistral Large 4”。短键 `mistral` 仍是 `unified`。
 
-其余型号见文末说明；正文没写清官方全名的没有加。
+文件名和正文对不上、因此没有加键的，写在 [prompts/NOTICE.md](prompts/NOTICE.md)。原有键值都没改。其中疑似错配、只记录不改的是：`deepseek-v4` / `deepseek-v4.1` / `deepseek` → `dsv4`，但 `deepseek-v4.md` 正文写的是 DeepSeek-V3；`grok-4.7` → `grok`（`grok-config.txt`），而 `grok-4.7.md` 自称 Grok Build，且对应的规则 `grok47` 不在 `map` 里；`glm-5.3` → `glm53f`，正文是 GLM 5.3 Flash，键本身没有 flash。
 
 ## 路径从哪来
 

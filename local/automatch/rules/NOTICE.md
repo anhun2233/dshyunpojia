@@ -16,7 +16,9 @@
 | `grok` | `prompts/grok-config.txt`（规则文件名是 `grok.md`，正文与 txt 相同） |
 | `grok47` | `prompts/grok-4.7.md` |
 | `grokbuild` | `prompts/grok-build.md` |
+| `kimi2` | `prompts/kimi-k2.md` |
 | `kimi3` | `prompts/kimi-k3-agents.md` |
+| `mistral-large` | `prompts/mistral-large-4.md` |
 | `mimo` | `prompts/mimo-2.6-agents.md` |
 | `muse` | `prompts/muse-ai-agents.md` |
 | `opus2` | `prompts/opus-v2.md` |

@@ -56,6 +56,8 @@ const copies = [
   ["rules/dsv3.md", "prompts/deepseek-v3.md"],
   ["rules/glm52.md", "prompts/glm-5.2.md"],
   ["rules/grok.md", "prompts/grok-config.txt"],
+  ["rules/kimi2.md", "prompts/kimi-k2.md"],
+  ["rules/mistral-large.md", "prompts/mistral-large-4.md"],
 ];
 for (const [rule, prompt] of copies) {
   const a = fs.readFileSync(path.join(root, rule));
@@ -100,6 +102,9 @@ const samples = [
   ["kimi-k3", "kimi3", "prefix"],
   ["kimi-k3-xxx", "kimi3", "prefix"],
   ["qwen-3.7-xx", "qwen", "prefix"],
+  ["kimi-k2-xxx", "kimi2", "prefix"],
+  ["mistral-large-4-xx", "mistral-large", "prefix"],
+  ["mistral-small", "unified", "prefix"],
   ["GLM 5.2 flash", "glm52", "prefix"],
   ["not-a-known-model", "", ""],
 ];

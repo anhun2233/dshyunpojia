@@ -1,4 +1,5 @@
 // UI derived from YuJunZhiXue/dsh-purge 1.1.71 (MIT). See LICENSE.
+import { runtimeRepairDetails } from "../shared/runtime-error.js";
 
 export function clientGuessSurface() {
   try {
@@ -73,7 +74,29 @@ function apiError(message, status) {
   return Object.assign(new Error(message), { status });
 }
 
-export async function apiJson(p, init) {
+// Share only an identical in-flight status GET; never reuse a settled result.
+// A mutation starts a new generation so its following refresh cannot join an old read.
+let pendingStatus = null;
+export function apiJson(p, init) {
+  const method = String(init?.method || "GET").toUpperCase();
+  if (method !== "GET") pendingStatus = null;
+  if (p !== "/dsh-purge/status" || init) return requestJson(p, init);
+  if (pendingStatus) return pendingStatus;
+  const request = requestJson(p, init);
+  pendingStatus = request;
+  const clear = () => {
+    if (pendingStatus === request) pendingStatus = null;
+  };
+  request.then(clear, clear);
+  return request;
+}
+export function unavailableStatus(error) {
+  return {
+    ok: false,
+    error: String(error?.message || error || "bad response"),
+  };
+}
+async function requestJson(p, init) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), apiTimeoutMs(p, init));
   try {
@@ -91,16 +114,20 @@ export async function apiJson(p, init) {
     } catch {
       throw apiError(r.status + " non-json: " + text.slice(0, 120), r.status);
     }
-    if (!r.ok)
-      throw apiError(
-        (data && (data.error || data.message)) || r.status + " " + r.statusText,
-        r.status,
+    if (!r.ok) {
+      const runtimeDetails = runtimeRepairDetails(data?.cli_repair);
+      const message =
+        (data && (data.error || data.message)) || r.status + " " + r.statusText;
+      throw Object.assign(
+        apiError([message, ...runtimeDetails].join("\n"), r.status),
+        { runtimeDetails },
       );
+    }
     return data;
   } catch (e) {
     if (isAbortError(e)) throw new Error("timeout");
     const msg = String((e && e.message) || e || "");
-    if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+    if (!e?.status && /failed to fetch|networkerror|load failed/i.test(msg)) {
       throw new Error("连不上接口，请确认 dsh 还在跑后 Ctrl+F5");
     }
     throw e;

@@ -1,3 +1,202 @@
+# 1.6.60
+
+修复缺失目标文件导致的异常中断，以及异常退出后遗留维护锁阻塞备份、安装和回滚的问题。感谢 Minervaowl7 提交 PR #88，以及 ShiTan-677 提供 macOS 复核证据。
+
+- **#86**：删除缺文件分支中对未声明 `detail` 的写入。1.6.58–1.6.59 的此类 ReferenceError 不再中断后续处理；真正的缺文件、部分命中和未知状态继续报告。
+- **#87 / PR #88**：回收只根据进程结束证据或进程启动时间确认的 PID 复用，不再因超过 30 分钟抢走活任务的锁。非空目录互斥保护并发回收，兼容旧锁格式；未知、跨机和读取失败保留诊断。
+- 安装/回滚丢锁后停止后续清单、配置提交及自动恢复，保留备份和恢复目录，避免覆盖另一维护任务的文件。CLI 和面板手动清理也使用同一把维护锁。
+- 现有补丁定义、用户提示词、设置、更新偏好和代理不改动；安装不会自动重启 DSH。
+
+**#89 仍待确认，不在本版修复范围内。** Windows 4090 的普通启动器退出验收通过；受控 Kill-on-close Job Object 实验可复现助手退出、waiting_for_quit 残留且归档未移动。尚需报告者确认现场进程托管机制，不能把受控复现当成其现场根因已经确定。
+
+测试范围与恢复说明见 [维护记录](https://github.com/kingcharleslzy-ai/dsh-purge/blob/master/docs/maintenance-issues-86-89.md)。
+
+---
+
+# 1.6.59
+
+## 把 1.6.58 里那 4 条「部分命中」逐个查清（#85 收尾）
+
+1.6.58 只给 #57 开了逐目标核算，另外 4 条老补丁仍是聚合状态。本版逐条核对 rc.3 的真实
+文件后分别处理，不再让它们悬着：
+
+| 补丁 | 未命中的目标 | 结论 | 处理 |
+|---|---|---|---|
+| #32 | `dsh-harness-dev-context` | 那句是 `legacyParagraph` 的**匹配常量**，用来识别并剥离历史身份段落；改写它反而会让旧段漏进提示词 | `fileOptional`，只核对不改写 |
+| #36 | `dsh-tool-fs` | 相同措辞已由审批补丁写成句首大写 `Approval is auto-granted.`，本补丁原文案在新版不存在 | `fileOptional` |
+| #50 | `dsh-session-reference/lib/types/index.js` | rc.3 原生就是 `untrusted, read-only snapshot` 措辞，已经是我们想要的状态 | 加等价的"已达成"标记 |
+| #62 | `dsh-tools/lib/index.js` | 0.2.1-rc.3 把 deny 判断只留在 `lib/types/index.js`，`lib/index.js` 里整段消失 | `fileOptional` |
+
+新增 `fileOptional: [key]` 语义：列出的目标不参与 `partial` 判定，但**仍然逐文件报告**
+状态，需要在面板里看得到。真机结果：72 applied / 0 pending / 0 partial / 0 unknown。
+
+## 为什么重要
+
+`fileOptional` 不是"忽略失败"的开关：只有确认过「这个目标在新版宿主里已经不承载该行为」
+才能加，并要在注释里写清依据。否则就是拿绿点换安心。
+
+## 验证
+
+`npm test` 359 通过 / 0 失败；新增 fileOptional 用例；真实宿主 4 条补丁均 `applied`，
+`partial` 为 0。
+
+# 1.6.58
+
+## 逐文件补丁状态（#85）
+
+`patchStatus` 以前按补丁聚合：一条补丁声明两个文件，只要一个文件命中就报 `applied`，
+`patchDrift` 也因为 `hitAny` 不报漂移——#57 的 responses 分支就是这样被瞒了几个月。
+
+本版新增：
+
+- `patchStatusDetail()` 返回 `{status, files}`，`files[id]` 是逐目标结果
+  （`{key, path, status}`，状态为 `applied|pending|skipped|unmatched|missing|unreadable`）；
+- 状态接口新增 `patch_files`，面板在「部分命中」时显示 `（1/2 目标）`；
+- 新状态 `partial`：声明了 `fileAllRequired: true` 的多文件补丁，只要还有一个
+  **存在的目标文件**没命中，就不再报 `applied`；`patchDrift` 以 `partial_drift` 上报；
+  自检把该补丁计入 `partial` 并让所在层显示异常；
+- `patchStatusReady("partial")` 为 `false`。
+
+## 为什么是 opt-in，不是一律全开
+
+先按「凡是多文件就逐目标核算」实现后，在本机 rc.3 实测有 4 条老补丁被标成 `partial`：
+
+| 补丁 | 情况 |
+|---|---|
+| #32 / #36 / #50 / #62 | 另一个目标文件在新版宿主里**逻辑已搬走或删除**，锚点自然不存在 |
+
+其中 #62 的 `dsh-tools/lib/index.js` 连 `approval === undefined` 都不再存在（判断只留在
+`types/index.js`），属于"这条补丁对新版只需一个目标"。把这些全标红会把真正的漂移淹掉。
+
+因此本版只让**明确声明每个目标都必须落地**的补丁启用逐目标核算；#57 已声明。
+其余老补丁保持原聚合行为，需要时再逐个核对并加 `fileAllRequired: true`。
+
+## 验证
+
+- 新增 `test/partial-status.test.mjs`：部分命中 → `partial` + `optionalDrift` + 自检 `partial`/层异常；
+  全部命中 → `applied`；全部未命中 → `skipped`；未声明 opt-in 的补丁保持原行为；
+- `npm test` 358 通过 / 0 失败；真实宿主 `partial` 为空，#57 两个目标均 `applied`。
+
+# 1.6.57
+
+## 修复 #57：responses 通路的锚点变量名写错（PR #84）
+
+补丁 #57 `DEEPSEEK_SYSTEM_ROLE` 的 responses 分支一直在找 `const role = ...`，但宿主 `@earendil-works/pi-ai`
+的两个文件里，这个变量从来没有叫过 `role`：
+
+- `openai-completions.js` 用的是 `instructionRole`，**那条 pattern 是对的，而且已经打上**；
+- `openai-responses-shared.js` 用的也是 `instructionRole`，而 pattern 写成了 `role` → **从落地起从未命中**。
+
+后果：走 Responses 通路的请求仍然把注入的系统提示词按 `developer` 角色发出去，第三方网关会静默丢弃
+（实测同内容 system 计 117 tokens、developer 只 87 tokens，差值就是被丢的指令）。状态页一直是绿的，
+因为补丁标了 `optional: true`，且状态按补丁聚合——completions 那半个命中就掩盖了 responses 的失败。
+
+本版把两处 responses 的 `pattern`/`replace` 改成 `instructionRole`：`api.openai.com` / `*.azure.com`
+仍用 `developer`，其余网关全部回退 `system`。
+
+## 验证（补齐了审查要求的两项）
+
+1. **真实宿主验证**：新增测试直接读已安装的 `openai-responses-shared.js`，断言锚点逐字存在、
+   整文件改写后 `node --check` 通过、变量名仍是 `instructionRole`、第二次应用是 no-op；
+   本机实测该文件已打上 `developer role allowlist: openai/azure` 标记并通过语法检查。
+2. **旧补丁迁移**：新增测试用带旧标记 `deepseek.com keeps system role` 的文本验证升级路径，
+   升级后不得残留 `deepseek.com` 字样，且幂等。
+
+`npm test` 353 通过 / 0 失败。
+
+## 范围（未解决的部分）
+
+多文件补丁的**聚合状态**问题仍在：一个文件命中、另一个未命中时，`patchStatus` 仍报 `applied`、
+`patchDrift` 仍返回空。这是 80 条补丁共用的盲区，本版不一起改，另开 issue 跟踪。
+另外，PR 作者「从落地起从未命中」的结论只在本机 rc.3 宿主上验证过，未对全部历史版本下结论。
+
+# 1.6.56
+
+- **状态页性能（PR #82）**：同一次只读诊断共享宿主身份、安装根与路径解析，减少重复磁盘调用。缓存不跨查询保留，避免换包、删除文件或链接改向后仍使用旧证据。
+- **状态错误（#83）**：合并同时发起的相同状态请求；超时、非 JSON 和接口错误保留原因，显示“状态未知”，不再误报 `0/0` 或“未定位宿主”。刷新可重试，真实缺失和补丁漂移继续显示。
+- **主题对比度（PR #81）**：演练台检索按钮与报告步骤编号使用配对主题颜色，同时更新社区版和独立面板构建。
+- 保留现有补丁定义、提示词、预设、设置与权限；不自动应用或重启 DSH。
+
+## 验证与边界
+
+完整回归、原生 Electron 状态接口和 Mac/Windows 隔离安装、迁移、回滚及失败恢复验收记录见 [维护说明](docs/maintenance-issues-81-83.md)。#83 的截图误报已复现；旧版 Windows 状态查询卡顿已复现，但报告者的完整 60 秒超时仍需其系统/DSH 版本和更新后结果确认，issue 保持开放。
+
+感谢 @Legeo969 和 @lyufeng000 的贡献。
+
+---
+
+# 1.6.55
+
+## 侧栏与面板标题改回「Purge」
+
+1.6.51 把界面上显示的名字改成了「dsh-purge Community」，侧栏条目也跟着变了。本版改回 **Purge**：
+
+- 侧栏条目 `label`：`Purge`
+- 面板主标题 `h1`：`Purge`
+- 设置页分组标题 `h2`：`Purge`
+
+包名、命令名、数据目录都不变，仍是 `dsh-purge-community` / `purge-community`，只是显示名回到大字写。
+
+## 验证
+
+`npm test` 320 通过 / 0 失败；两份 bundle 重建后 `check:client` 通过。
+
+# 1.6.54
+
+## 旧运行时链接迁移与错误详情（#79 / #77）
+
+- 从平铺运行时升级到架构子目录时，识别同一安装的旧 runtime 链接，先备份再迁移；保留真实目录、其他目标链接和目标文件。
+- 迁移创建/验证失败恢复原链接；恢复失败明确报告并保留备份，不掩盖权限、缺文件和路径冲突。
+- 应用失败显示具体运行时原因、错误码、启动器错误及恢复状态；不再丢弃后端诊断详情，不展开用户提示词或完整配置。
+- 恢复默认测试命令中的桌面目标识别测试，并补充迁移、失败恢复和真实 HTTP 错误解析回归。
+
+测试证据及边界见 [维护记录](docs/maintenance-issue-79.md)。不自动重启，不修改用户设置。此修复覆盖已复现的运行时布局问题；报告者的具体环境及预设重启后消失仍待确认。
+
+# 1.6.53
+
+## DSH 0.2.1-rc.3：验证通过，加入已核验清单
+
+rc.3 更新后实测：
+
+- `diagnose`：**80 条补丁全部命中**（checked 80 / drifted 0 / missing 0），唯一 `optionalDrift` 是第三方目标；
+- 更新时宿主被重新解包（`app.asar` 移走 + 补丁重写），`applied.json` 记录到 1.6.50，进程随后以 rc.3 启动；
+- 逐条对照 rc.2 与 rc.3 的操作面字符串，没有发现新的拒绝话术：`file access denied`、`do not retry another way`、
+  `rejected automatically` 这些位置要么已被本插件覆盖，要么只剩 UI/工具描述里的无关文本；
+- `dsh-user-approval` 的审批句、`dsh-tool-bash`/`dsh-tool-pwsh` 的沙箱话术仍在原来的锚点上，补丁继续生效。
+
+因此把 `0.2.1-rc.3` 加入 `QUALIFIED_HOST_VERSIONS`，自检不再对它报「未在已验证清单内」。
+
+## 验证
+
+`npm test` 320 通过 / 0 失败；rc.3 上 `selfcheck` 25/25 ok。
+
+# 1.6.52
+
+## 移除「公网目标一律拒绝」的门禁
+
+上游 1.1.74–1.1.77 的 `net-scope` 会在 `agent/pre-step` 里判断：任务像攻击 + 目标解析到公网 IP →
+直接塞一句「不行，这是严令禁止的」并把这一轮消息清空。本 fork 一直带着这段代码（1.1.71 遗产），
+等于把破甲限制成「只能打内网/靶场」。
+
+本版把门禁连同判定逻辑一起删除：`installRegionGate`、`isAttackTask`、`taskTargetHit`、
+`DENIAL` 与配套的 chunks 全部移除。白名单文件 API（`readAllowText` / `writeAllowText` /
+`normalizeAllowText` / `ownServerNote`）保留，设置卡不受影响。
+
+新增 `test/no-region-gate.test.mjs` 钉住：`net-scope` 不再导出安装器，`lib/index.js` 不再引用它。
+
+## 上游修复的评估（未采纳项）
+
+- **1.1.77 的 ReDoS 窗口扫描**：只服务于上面那个门禁，门禁删掉后没有意义。
+- **1.1.74/1.1.75 的「already queued」补丁改写**：上游改成只 patch 已入队行、不再 insert；
+  我们的安装器会主动把包从 `bundles` 里移除并用 insert 建行，改成上游写法会让安装器路径失效，
+  暂不采纳。本机 profile 同时存在 bundle 与 insert 也未报错，风险未在 0.2.1-rc.2 上复现。
+- **1.1.76 的 pnpm postinstall 写 bundles**：我们的安装器已负责写 bundles；市场安装由宿主写，
+  不额外加 postinstall。
+
+## 验证
+
+`npm test` 312 通过 / 0 失败；`check:docs` / `check:client` / `smoke` 通过。
+
 # 1.6.50
 
 ## 文案：把「尚未安排换包」改成能看懂的话
